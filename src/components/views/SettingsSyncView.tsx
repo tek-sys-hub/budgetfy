@@ -3,7 +3,6 @@ import {
   Database, 
   Download, 
   Upload, 
-  ShieldCheck, 
   Key, 
   Smartphone, 
   Copy, 
@@ -14,7 +13,11 @@ import {
   Sparkles, 
   HeartHandshake,
   DollarSign,
-  HardDrive,
+  User,
+  Calendar,
+  CreditCard,
+  Sun,
+  ShieldCheck,
   Trash2,
   AlertTriangle
 } from 'lucide-react';
@@ -22,7 +25,7 @@ import QRCode from 'qrcode';
 import { useBudget } from '../../context/BudgetContext';
 import { StorageService } from '../../services/storage';
 import { IndexedDBService, db } from '../../services/db';
-import { AppData } from '../../types/budget';
+import { AppData, Frequency, DebtStrategy } from '../../types/budget';
 
 export const SettingsSyncView: React.FC = () => {
   const { 
@@ -34,6 +37,12 @@ export const SettingsSyncView: React.FC = () => {
     importData, 
     resetAllData 
   } = useBudget();
+
+  // User Profile & Paycheck details
+  const [userName, setUserName] = useState(settings.userName || '');
+  const [expectedIncome, setExpectedIncome] = useState(paycheckConfig.expectedAmount.toString());
+  const [frequency, setFrequency] = useState<Frequency>(paycheckConfig.frequency);
+  const [nextPayDate, setNextPayDate] = useState(paycheckConfig.nextPayDate);
 
   // Bank & Cushion edit states
   const [bankBalance, setBankBalance] = useState(paycheckConfig.currentBankBalance.toString());
@@ -62,6 +71,51 @@ export const SettingsSyncView: React.FC = () => {
   const [tableCounts, setTableCounts] = useState<Record<string, number>>({});
   const [dbPingStatus, setDbPingStatus] = useState<string | null>(null);
   const [inspectingTable, setInspectingTable] = useState<{ name: string; data: unknown[] } | null>(null);
+
+  // Sync state when settings or config changes externally
+  useEffect(() => {
+    setUserName(settings.userName || '');
+  }, [settings.userName]);
+
+  useEffect(() => {
+    setBankBalance(paycheckConfig.currentBankBalance.toString());
+    setCushionAmount(paycheckConfig.cushionAmount.toString());
+    setExpectedIncome(paycheckConfig.expectedAmount.toString());
+    setFrequency(paycheckConfig.frequency);
+    setNextPayDate(paycheckConfig.nextPayDate);
+  }, [paycheckConfig]);
+
+  useEffect(() => {
+    IndexedDBService.getStorageEstimate().then(setStorageEstimate);
+    IndexedDBService.getRecordCounts().then(setTableCounts);
+  }, [data]);
+
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    const income = parseFloat(expectedIncome);
+    updateSettings({ userName: userName.trim() });
+    updatePaycheckConfig({
+      expectedAmount: isNaN(income) ? 0 : Math.max(0, income),
+      frequency,
+      nextPayDate: nextPayDate || new Date().toISOString().split('T')[0],
+    });
+    setSyncStatus('Profile and paycheck schedule saved! ✨');
+    setTimeout(() => setSyncStatus(null), 3500);
+  };
+
+  const handleSaveFinancialBasics = (e: React.FormEvent) => {
+    e.preventDefault();
+    const balance = parseFloat(bankBalance);
+    const cushion = parseFloat(cushionAmount);
+    if (isNaN(balance) || isNaN(cushion)) return;
+
+    updatePaycheckConfig({
+      currentBankBalance: Math.max(0, balance),
+      cushionAmount: Math.max(0, cushion),
+    });
+    setSyncStatus('Checking balance and cushion buffer saved! ✨');
+    setTimeout(() => setSyncStatus(null), 3500);
+  };
 
   const handleTestDbPing = async () => {
     const start = performance.now();
@@ -92,26 +146,6 @@ export const SettingsSyncView: React.FC = () => {
     } catch (err) {
       alert('Failed to inspect table: ' + String(err));
     }
-  };
-
-  useEffect(() => {
-    // Refresh storage stats on load
-    IndexedDBService.getStorageEstimate().then(setStorageEstimate);
-    IndexedDBService.getRecordCounts().then(setTableCounts);
-  }, [data]);
-
-  const handleSaveFinancialBasics = (e: React.FormEvent) => {
-    e.preventDefault();
-    const balance = parseFloat(bankBalance);
-    const cushion = parseFloat(cushionAmount);
-    if (isNaN(balance) || isNaN(cushion)) return;
-
-    updatePaycheckConfig({
-      currentBankBalance: balance,
-      cushionAmount: cushion,
-    });
-    setSyncStatus('Checking balance and cushion buffer saved! ✨');
-    setTimeout(() => setSyncStatus(null), 3000);
   };
 
   // Plain JSON Backup from IndexedDB
@@ -163,7 +197,7 @@ export const SettingsSyncView: React.FC = () => {
           setSyncStatus('Database restored into IndexedDB successfully! 🎉');
           setTimeout(() => setSyncStatus(null), 3000);
         }
-      } catch (err) {
+      } catch {
         alert('Invalid backup file. Could not parse JSON.');
       }
     };
@@ -200,7 +234,7 @@ export const SettingsSyncView: React.FC = () => {
         color: { dark: '#241930', light: '#FFFFFF' } 
       });
       setQrDataUrl(url);
-    } catch (err) {
+    } catch {
       alert('Failed to generate sync code');
     }
   };
@@ -243,11 +277,11 @@ export const SettingsSyncView: React.FC = () => {
           <div className="flex items-center gap-2">
             <span className="text-2xl">⚙️</span>
             <h2 className="text-2xl font-serif font-bold text-[#241930] dark:text-slate-100">
-              Settings & IndexedDB Database
+              Settings & Personal Details
             </h2>
           </div>
           <p className="text-xs text-[#7F7094] dark:text-slate-400 mt-1">
-            Local-first IndexedDB storage, encrypted backups, and cross-device synchronization
+            Configure your personal profile, finances, ADHD preferences, and local-first IndexedDB database
           </p>
         </div>
       </div>
@@ -259,7 +293,304 @@ export const SettingsSyncView: React.FC = () => {
         </div>
       )}
 
-      {/* 1. IndexedDB Database Status & Health Monitor */}
+      {/* 1. Personal Profile & Paycheck Schedule */}
+      <div className="bg-white dark:bg-[#111827] rounded-3xl p-6 border border-[#DDD7E8] dark:border-[#1F293D] shadow-xs space-y-4">
+        <div className="flex items-center gap-2.5 pb-3 border-b border-[#ECE6F3] dark:border-[#1F293D]">
+          <div className="w-10 h-10 rounded-2xl bg-purple-500/10 text-[#4A3561] dark:text-indigo-400 flex items-center justify-center font-bold">
+            <User className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="font-serif font-bold text-base text-[#241930] dark:text-slate-100">
+              Your Profile & Paycheck Schedule
+            </h3>
+            <span className="text-xs text-[#7F7094] dark:text-slate-400">
+              Personalize greetings and configure your regular paycheck cycle
+            </span>
+          </div>
+        </div>
+
+        <form onSubmit={handleSaveProfile} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* User Name */}
+            <div>
+              <label className="block text-xs font-semibold text-[#5F4E75] dark:text-slate-300 mb-1">
+                Your Name / Preferred Nickname
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Alex"
+                value={userName}
+                onChange={e => setUserName(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-2xl bg-[#FAF9FC] dark:bg-[#162032] border border-[#DDD5E6] dark:border-[#223049] text-sm font-semibold text-[#241930] dark:text-slate-100 focus:outline-none focus:border-[#4A3561]"
+              />
+              <span className="text-[10px] text-[#7F7094] dark:text-slate-400 mt-1 block">
+                Shown in the top greeting: "Good morning/afternoon/evening, {userName || '...'}"
+              </span>
+            </div>
+
+            {/* Expected Paycheck Amount */}
+            <div>
+              <label className="block text-xs font-semibold text-[#5F4E75] dark:text-slate-300 mb-1">
+                Typical Take-Home Paycheck ({settings.currencySymbol})
+              </label>
+              <input
+                type="number"
+                step="any"
+                placeholder="e.g. 2500.00"
+                value={expectedIncome}
+                onChange={e => setExpectedIncome(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-2xl bg-[#FAF9FC] dark:bg-[#162032] border border-[#DDD5E6] dark:border-[#223049] text-sm font-bold font-mono text-[#241930] dark:text-slate-100 focus:outline-none focus:border-[#4A3561]"
+              />
+              <span className="text-[10px] text-[#7F7094] dark:text-slate-400 mt-1 block">
+                Used in paycheck forecasting and envelope replenishment
+              </span>
+            </div>
+
+            {/* Pay Frequency */}
+            <div>
+              <label className="block text-xs font-semibold text-[#5F4E75] dark:text-slate-300 mb-1">
+                Paycheck Frequency
+              </label>
+              <select
+                value={frequency}
+                onChange={e => setFrequency(e.target.value as Frequency)}
+                className="w-full px-4 py-2.5 rounded-2xl bg-[#FAF9FC] dark:bg-[#162032] border border-[#DDD5E6] dark:border-[#223049] text-xs font-bold text-[#241930] dark:text-slate-100 focus:outline-none"
+              >
+                <option value="weekly">Weekly (Every 7 days)</option>
+                <option value="biweekly">Bi-Weekly (Every 2 weeks / 14 days)</option>
+                <option value="semimonthly">Semi-Monthly (Twice a month, e.g. 1st & 15th)</option>
+                <option value="monthly">Monthly (Once per month)</option>
+              </select>
+              <span className="text-[10px] text-[#7F7094] dark:text-slate-400 mt-1 block">
+                Controls cycle bill filtering and Safe-to-Spend cadence
+              </span>
+            </div>
+
+            {/* Next Pay Date */}
+            <div>
+              <label className="block text-xs font-semibold text-[#5F4E75] dark:text-slate-300 mb-1">
+                Next Paycheck Date
+              </label>
+              <input
+                type="date"
+                required
+                value={nextPayDate}
+                onChange={e => setNextPayDate(e.target.value)}
+                className="w-full px-4 py-2 rounded-2xl bg-[#FAF9FC] dark:bg-[#162032] border border-[#DDD5E6] dark:border-[#223049] text-xs font-semibold text-[#241930] dark:text-slate-100 focus:outline-none focus:border-[#4A3561]"
+              />
+              <span className="text-[10px] text-[#7F7094] dark:text-slate-400 mt-1 block">
+                Safe-to-Spend calculates daily allowance from today until this date
+              </span>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-1">
+            <button
+              type="submit"
+              className="py-2.5 px-5 rounded-2xl bg-[#241930] dark:bg-indigo-600 hover:bg-[#3D2952] text-white font-bold text-xs shadow-xs transition-all active:scale-95"
+            >
+              Save Profile & Paycheck
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* 2. Checking Balance & Cushion Buffer */}
+      <div className="bg-white dark:bg-[#111827] rounded-3xl p-6 border border-[#DDD7E8] dark:border-[#1F293D] shadow-xs space-y-4">
+        <div className="flex items-center gap-2.5 pb-3 border-b border-[#ECE6F3] dark:border-[#1F293D]">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+            <DollarSign className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="font-serif font-bold text-base text-[#241930] dark:text-slate-100">
+              Checking Account & ADHD Cushion Floor
+            </h3>
+            <span className="text-xs text-[#7F7094] dark:text-slate-400">
+              Set your actual checking balance and the protected cushion buffer
+            </span>
+          </div>
+        </div>
+
+        <form onSubmit={handleSaveFinancialBasics} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-[#5F4E75] dark:text-slate-300 mb-1">
+                Real Checking Balance ({settings.currencySymbol})
+              </label>
+              <input
+                type="number"
+                step="any"
+                required
+                value={bankBalance}
+                onChange={e => setBankBalance(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-2xl bg-[#FAF9FC] dark:bg-[#162032] border border-[#DDD5E6] dark:border-[#223049] text-base font-bold font-mono text-[#241930] dark:text-slate-100 focus:outline-none focus:border-[#4A3561]"
+              />
+              <span className="text-[10px] text-[#7F7094] dark:text-slate-400 mt-1 block">
+                Total money in your bank account right now
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[#5F4E75] dark:text-slate-300 mb-1">
+                ADHD Cushion Floor ({settings.currencySymbol})
+              </label>
+              <input
+                type="number"
+                step="any"
+                required
+                value={cushionAmount}
+                onChange={e => setCushionAmount(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-2xl bg-[#FAF9FC] dark:bg-[#162032] border border-[#DDD5E6] dark:border-[#223049] text-base font-bold font-mono text-[#4A3561] dark:text-indigo-400 focus:outline-none focus:border-[#4A3561]"
+              />
+              <span className="text-[10px] text-[#7F7094] dark:text-slate-400 mt-1 block">
+                Safe-to-Spend treats this floor as $0 to protect you from unexpected overdrafts
+              </span>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-1">
+            <button
+              type="submit"
+              className="py-2.5 px-5 rounded-2xl bg-[#241930] dark:bg-indigo-600 hover:bg-[#3D2952] text-white font-bold text-xs shadow-xs transition-all active:scale-95"
+            >
+              Save Balances
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* 3. Sensory, ADHD & Strategy Personalization */}
+      <div className="bg-white dark:bg-[#111827] rounded-3xl p-6 border border-[#DDD7E8] dark:border-[#1F293D] shadow-xs space-y-4">
+        <div className="flex items-center gap-2.5 pb-3 border-b border-[#ECE6F3] dark:border-[#1F293D]">
+          <div className="w-10 h-10 rounded-2xl bg-pink-500/10 text-pink-500 flex items-center justify-center font-bold">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="font-serif font-bold text-base text-[#241930] dark:text-slate-100">
+              Sensory, ADHD & Debt Strategy
+            </h3>
+            <span className="text-xs text-[#7F7094] dark:text-slate-400">
+              Customize tactile feedback, aesthetics, affirmations, and debt payoff methodology
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Currency */}
+          <div>
+            <label className="block text-xs font-semibold text-[#5F4E75] dark:text-slate-300 mb-1.5">
+              Currency
+            </label>
+            <select
+              value={settings.currencySymbol}
+              onChange={e => updateSettings({ currencySymbol: e.target.value })}
+              className="w-full px-4 py-2.5 rounded-2xl bg-[#FAF9FC] dark:bg-[#162032] border border-[#DDD5E6] dark:border-[#223049] text-xs font-bold text-[#241930] dark:text-slate-100 focus:outline-none"
+            >
+              <option value="$">$ USD / CAD / AUD (Dollar)</option>
+              <option value="€">€ EUR (Euro)</option>
+              <option value="£">£ GBP (Pound)</option>
+              <option value="¥">¥ JPY / CNY (Yen/Yuan)</option>
+              <option value="₹">₹ INR (Rupee)</option>
+              <option value="CHF">CHF (Swiss Franc)</option>
+            </select>
+          </div>
+
+          {/* Theme Mode */}
+          <div>
+            <label className="block text-xs font-semibold text-[#5F4E75] dark:text-slate-300 mb-1.5">
+              Theme Mode
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => updateSettings({ themeMode: 'light' })}
+                className={`py-2 px-3 rounded-2xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                  settings.themeMode !== 'dark'
+                    ? 'border-[#4A3561] bg-[#F5F2F9] text-[#4A3561] font-bold shadow-xs'
+                    : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                <span>☀️ Soft Pastel</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => updateSettings({ themeMode: 'dark' })}
+                className={`py-2 px-3 rounded-2xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                  settings.themeMode === 'dark'
+                    ? 'border-indigo-500 bg-indigo-950/60 text-indigo-300 shadow-xs'
+                    : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                <span>🌙 Dark Night</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Debt Strategy */}
+          <div>
+            <label className="block text-xs font-semibold text-[#5F4E75] dark:text-slate-300 mb-1.5">
+              Debt Payoff Strategy
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => updateSettings({ debtStrategy: 'snowball' })}
+                className={`py-2 px-2.5 rounded-2xl border text-[11px] font-bold flex items-center justify-center gap-1 transition-all ${
+                  settings.debtStrategy === 'snowball'
+                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 shadow-xs'
+                    : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                }`}
+                title="Smallest balance first — fast dopamine wins"
+              >
+                <span>⚡ Snowball</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => updateSettings({ debtStrategy: 'avalanche' })}
+                className={`py-2 px-2.5 rounded-2xl border text-[11px] font-bold flex items-center justify-center gap-1 transition-all ${
+                  settings.debtStrategy === 'avalanche'
+                    ? 'border-indigo-500 bg-indigo-950/50 text-indigo-300 shadow-xs'
+                    : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                }`}
+                title="Highest interest APR first — saves maximum money"
+              >
+                <span>🏔️ Avalanche</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Sensory Toggles */}
+        <div className="pt-3 border-t border-[#ECE6F3] dark:border-[#1F293D] space-y-3">
+          <label className="flex items-center justify-between cursor-pointer">
+            <span className="text-xs font-semibold text-[#241930] dark:text-slate-300 flex items-center gap-2">
+              <Volume2 className="w-4 h-4 text-purple-500" />
+              Tactile Sound Effects & Celebration Chimes
+            </span>
+            <input
+              type="checkbox"
+              checked={settings.soundEnabled}
+              onChange={e => updateSettings({ soundEnabled: e.target.checked })}
+              className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500"
+            />
+          </label>
+
+          <label className="flex items-center justify-between cursor-pointer">
+            <span className="text-xs font-semibold text-[#241930] dark:text-slate-300 flex items-center gap-2">
+              <HeartHandshake className="w-4 h-4 text-pink-500" />
+              Compassionate, Shame-Free ADHD Affirmations
+            </span>
+            <input
+              type="checkbox"
+              checked={settings.shameFreeAffirmations}
+              onChange={e => updateSettings({ shameFreeAffirmations: e.target.checked })}
+              className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500"
+            />
+          </label>
+        </div>
+      </div>
+
+      {/* 4. IndexedDB Database Status & Health Monitor */}
       <div className="bg-white dark:bg-[#111827] rounded-3xl p-6 border border-[#DDD7E8] dark:border-[#1F293D] shadow-xs space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-[#ECE6F3] dark:border-[#1F293D]">
           <div className="flex items-center gap-2.5">
@@ -291,7 +622,7 @@ export const SettingsSyncView: React.FC = () => {
         <div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-[11px] font-bold text-[#7F7094] dark:text-slate-400 uppercase tracking-wider block">
-              IndexedDB Tables (Tap any table to inspect raw data)
+              IndexedDB Tables (Tap any table to inspect raw records)
             </span>
             <button
               onClick={handleTestDbPing}
@@ -386,64 +717,7 @@ export const SettingsSyncView: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. Checking Balance & Cushion Buffer */}
-      <div className="bg-white dark:bg-[#111827] rounded-3xl p-6 border border-[#DDD7E8] dark:border-[#1F293D] shadow-xs">
-        <div className="flex items-center gap-2 mb-4">
-          <DollarSign className="w-5 h-5 text-purple-600 dark:text-indigo-400" />
-          <h3 className="font-serif font-bold text-base text-[#241930] dark:text-slate-100">
-            Checking Account & ADHD Cushion Floor
-          </h3>
-        </div>
-
-        <form onSubmit={handleSaveFinancialBasics} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-[#5F4E75] dark:text-slate-300 mb-1">
-                Real Checking Balance ({settings.currencySymbol})
-              </label>
-              <input
-                type="number"
-                step="any"
-                required
-                value={bankBalance}
-                onChange={e => setBankBalance(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-2xl bg-[#FAF9FC] dark:bg-[#162032] border border-[#DDD5E6] dark:border-[#223049] text-base font-bold font-mono text-[#241930] dark:text-slate-100 focus:outline-none focus:border-[#4A3561]"
-              />
-              <span className="text-[10px] text-[#7F7094] dark:text-slate-400 mt-1 block">
-                Total money in checking account right now
-              </span>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-[#5F4E75] dark:text-slate-300 mb-1">
-                ADHD Cushion Floor ({settings.currencySymbol})
-              </label>
-              <input
-                type="number"
-                step="any"
-                required
-                value={cushionAmount}
-                onChange={e => setCushionAmount(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-2xl bg-[#FAF9FC] dark:bg-[#162032] border border-[#DDD5E6] dark:border-[#223049] text-base font-bold font-mono text-[#4A3561] dark:text-indigo-400 focus:outline-none focus:border-[#4A3561]"
-              />
-              <span className="text-[10px] text-[#7F7094] dark:text-slate-400 mt-1 block">
-                Safe-to-Spend treats this buffer as $0 to protect you from overdrafts!
-              </span>
-            </div>
-          </div>
-
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              className="py-2.5 px-5 rounded-2xl bg-[#241930] dark:bg-indigo-600 hover:bg-[#3D2952] text-white font-bold text-xs shadow-xs"
-            >
-              Save Balances
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* 3. Device Sync: Mirror IndexedDB via QR Code or String */}
+      {/* 5. Device Sync: Mirror IndexedDB via QR Code or String */}
       <div className="bg-white dark:bg-[#111827] rounded-3xl p-6 border border-[#DDD7E8] dark:border-[#1F293D] shadow-xs space-y-4">
         <div className="flex items-center gap-2 mb-1">
           <Smartphone className="w-5 h-5 text-purple-600 dark:text-indigo-400" />
@@ -517,120 +791,29 @@ export const SettingsSyncView: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. Sensory & Affirmation Customization */}
-      <div className="bg-white dark:bg-[#111827] rounded-3xl p-6 border border-[#DDD7E8] dark:border-[#1F293D] shadow-xs space-y-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Sparkles className="w-5 h-5 text-purple-600 dark:text-indigo-400" />
-          <h3 className="font-serif font-bold text-base text-[#241930] dark:text-slate-100">
-            Sensory & ADHD Personalization
-          </h3>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Currency */}
-          <div>
-            <label className="block text-xs font-semibold text-[#5F4E75] dark:text-slate-300 mb-1.5">
-              Currency
-            </label>
-            <select
-              value={settings.currencySymbol}
-              onChange={e => updateSettings({ currencySymbol: e.target.value })}
-              className="w-full px-4 py-2.5 rounded-2xl bg-[#FAF9FC] dark:bg-[#162032] border border-[#DDD5E6] dark:border-[#223049] text-xs font-bold text-[#241930] dark:text-slate-100 focus:outline-none"
-            >
-              <option value="$">$ USD / CAD / AUD (Dollar)</option>
-              <option value="€">€ EUR (Euro)</option>
-              <option value="£">£ GBP (Pound)</option>
-              <option value="¥">¥ JPY / CNY (Yen/Yuan)</option>
-              <option value="₹">₹ INR (Rupee)</option>
-              <option value="CHF">CHF (Swiss Franc)</option>
-            </select>
-          </div>
-
-          {/* Theme Mode */}
-          <div>
-            <label className="block text-xs font-semibold text-[#5F4E75] dark:text-slate-300 mb-1.5">
-              Theme Mode
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => updateSettings({ themeMode: 'light' })}
-                className={`py-2 px-3 rounded-2xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
-                  settings.themeMode !== 'dark'
-                    ? 'border-[#4A3561] bg-[#F5F2F9] text-[#4A3561] font-bold shadow-xs'
-                    : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
-                }`}
-              >
-                <span>☀️ Soft Pastel</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => updateSettings({ themeMode: 'dark' })}
-                className={`py-2 px-3 rounded-2xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
-                  settings.themeMode === 'dark'
-                    ? 'border-indigo-500 bg-indigo-950/60 text-indigo-300 shadow-xs'
-                    : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
-                }`}
-              >
-                <span>🌙 Dark Night</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Toggles */}
-        <div className="pt-3 border-t border-[#ECE6F3] dark:border-[#1F293D] space-y-3">
-          <label className="flex items-center justify-between cursor-pointer">
-            <span className="text-xs font-semibold text-[#241930] dark:text-slate-300 flex items-center gap-2">
-              <Volume2 className="w-4 h-4 text-purple-500" />
-              Tactile Sound Effects & Celebration Chimes
-            </span>
-            <input
-              type="checkbox"
-              checked={settings.soundEnabled}
-              onChange={e => updateSettings({ soundEnabled: e.target.checked })}
-              className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500"
-            />
-          </label>
-
-          <label className="flex items-center justify-between cursor-pointer">
-            <span className="text-xs font-semibold text-[#241930] dark:text-slate-300 flex items-center gap-2">
-              <HeartHandshake className="w-4 h-4 text-pink-500" />
-              Compassionate, Shame-Free ADHD Affirmations
-            </span>
-            <input
-              type="checkbox"
-              checked={settings.shameFreeAffirmations}
-              onChange={e => updateSettings({ shameFreeAffirmations: e.target.checked })}
-              className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500"
-            />
-          </label>
-        </div>
-      </div>
-
-      {/* 5. Clear / Reset IndexedDB */}
+      {/* 6. Clear / Reset IndexedDB */}
       <div className="bg-white dark:bg-[#111827] rounded-3xl p-6 border border-[#DDD7E8] dark:border-[#1F293D] shadow-xs flex items-center justify-between">
         <div>
           <span className="font-serif font-bold text-sm text-[#241930] dark:text-slate-100 block">
-            Reset IndexedDB Tables
+            Clear Database & Start Fresh
           </span>
           <span className="text-xs text-[#7F7094] dark:text-slate-400">
-            Re-populate initial sample data or clean test records
+            Wipes local IndexedDB and resets everything to a clean slate
           </span>
         </div>
 
         <button
           onClick={async () => {
-            if (confirm('Reset IndexedDB back to initial demo data? Any unsaved edits will be cleared.')) {
+            if (confirm('Are you sure you want to clear your local database and start completely fresh? All entries will be cleared.')) {
               resetAllData();
               await IndexedDBService.populateDefaults();
-              setSyncStatus('IndexedDB reset to default template successfully!');
+              setSyncStatus('Database cleared and reset to fresh state!');
               setTimeout(() => setSyncStatus(null), 3000);
             }
           }}
           className="py-2 px-4 rounded-xl border border-rose-300 dark:border-rose-900/60 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-bold transition-colors"
         >
-          Reset to Sample Data
+          Clear All Records
         </button>
       </div>
 
@@ -730,6 +913,7 @@ export const SettingsSyncView: React.FC = () => {
           </div>
         </div>
       )}
+
       {/* Table Inspector Modal */}
       {inspectingTable && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">

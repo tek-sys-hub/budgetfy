@@ -6,6 +6,7 @@ export const MilestonesView: React.FC = () => {
   const { 
     challenges, 
     toggleChallengeStep, 
+    addChallenge,
     noSpendDates, 
     toggleNoSpendToday, 
     settings,
@@ -65,11 +66,76 @@ export const MilestonesView: React.FC = () => {
 
       {/* Interactive Color-in Savings Challenges */}
       <div className="space-y-6">
-        <h3 className="font-serif font-bold text-lg text-[#241930] dark:text-white">
-          Visual Color-In Trackers
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="font-serif font-bold text-lg text-[#241930] dark:text-white">
+            Visual Color-In Trackers
+          </h3>
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {(challenges || []).length === 0 ? (
+          <div className="bg-white dark:bg-[#1E1628] rounded-3xl p-8 border border-[#DDD7E8] dark:border-[#2C213B] shadow-xs text-center">
+            <div className="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center text-2xl mx-auto mb-3">
+              🎨
+            </div>
+            <h4 className="font-serif font-bold text-lg text-[#241930] dark:text-white mb-1">
+              Start an ADHD Color-In Challenge
+            </h4>
+            <p className="text-xs text-[#7F7094] dark:text-[#A798BC] max-w-md mx-auto mb-5 leading-relaxed">
+              Coloring in each bubble as you save gives your brain quick visual dopamine hits. Pick a challenge below to begin:
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto">
+              <button
+                onClick={() => addChallenge({
+                  name: '$100 Quick Cushion',
+                  icon: '⚡',
+                  totalTarget: 100,
+                  stepValue: 10,
+                  totalSteps: 10,
+                  color: '#8B5CF6'
+                })}
+                className="p-4 rounded-2xl bg-[#FAF9FC] dark:bg-[#251A33] border border-[#ECE6F3] dark:border-[#38284C] hover:border-purple-500 text-left transition-all active:scale-95"
+              >
+                <div className="text-xl mb-1">⚡</div>
+                <div className="font-bold text-xs text-[#241930] dark:text-white">$100 Starter Cushion</div>
+                <div className="text-[10px] text-[#8C7D9E] mt-0.5">10 bubbles × {settings.currencySymbol}10</div>
+              </button>
+
+              <button
+                onClick={() => addChallenge({
+                  name: '$250 Weekend Buffer',
+                  icon: '🛡️',
+                  totalTarget: 250,
+                  stepValue: 25,
+                  totalSteps: 10,
+                  color: '#10B981'
+                })}
+                className="p-4 rounded-2xl bg-[#FAF9FC] dark:bg-[#251A33] border border-[#ECE6F3] dark:border-[#38284C] hover:border-emerald-500 text-left transition-all active:scale-95"
+              >
+                <div className="text-xl mb-1">🛡️</div>
+                <div className="font-bold text-xs text-[#241930] dark:text-white">$250 Weekend Buffer</div>
+                <div className="text-[10px] text-[#8C7D9E] mt-0.5">10 bubbles × {settings.currencySymbol}25</div>
+              </button>
+
+              <button
+                onClick={() => addChallenge({
+                  name: '$500 Debt Smasher',
+                  icon: '🔥',
+                  totalTarget: 500,
+                  stepValue: 25,
+                  totalSteps: 20,
+                  color: '#EF4444'
+                })}
+                className="p-4 rounded-2xl bg-[#FAF9FC] dark:bg-[#251A33] border border-[#ECE6F3] dark:border-[#38284C] hover:border-rose-500 text-left transition-all active:scale-95"
+              >
+                <div className="text-xl mb-1">🔥</div>
+                <div className="font-bold text-xs text-[#241930] dark:text-white">$500 Debt Smasher</div>
+                <div className="text-[10px] text-[#8C7D9E] mt-0.5">20 bubbles × {settings.currencySymbol}25</div>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {(challenges || []).map(chal => {
             const currentSaved = chal.completedSteps * chal.stepValue;
             const percent = Math.round((chal.completedSteps / chal.totalSteps) * 100);
@@ -133,6 +199,7 @@ export const MilestonesView: React.FC = () => {
             );
           })}
         </div>
+        )}
       </div>
     </div>
   );

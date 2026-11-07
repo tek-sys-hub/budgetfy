@@ -191,8 +191,28 @@ export const GoalsView: React.FC = () => {
           </div>
 
           {/* Goal Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {goals.map(goal => {
+          {goals.length === 0 ? (
+            <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-10 border border-slate-200/80 dark:border-slate-800 text-center shadow-sm">
+              <div className="w-16 h-16 rounded-3xl bg-purple-100 dark:bg-purple-950/50 text-purple-600 dark:text-purple-300 flex items-center justify-center text-3xl mx-auto mb-4">
+                🍯
+              </div>
+              <h3 className="font-bold text-xl text-slate-800 dark:text-white mb-1">
+                No savings goals created yet
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-5 leading-relaxed">
+                Give your savings tangible meaning with visual jars (e.g. Emergency Cushion, Dream Vacation, New Laptop).
+              </p>
+              <button
+                onClick={() => setIsAddingGoal(true)}
+                className="py-2.5 px-6 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs inline-flex items-center gap-2 shadow-md shadow-purple-600/20 transition-transform active:scale-95"
+              >
+                <Plus className="w-4 h-4 stroke-[2.5]" />
+                Create First Savings Goal
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {goals.map(goal => {
               const percent = Math.min(100, Math.round((goal.currentAmount / (goal.targetAmount || 1)) * 100));
               const remaining = Math.max(0, goal.targetAmount - goal.currentAmount);
               const isCompleted = goal.currentAmount >= goal.targetAmount;
@@ -279,6 +299,7 @@ export const GoalsView: React.FC = () => {
               );
             })}
           </div>
+          )}
         </div>
       )}
 
@@ -336,8 +357,28 @@ export const GoalsView: React.FC = () => {
           </div>
 
           {/* Debt Items List */}
-          <div className="space-y-3">
-            {sortedDebts.map((debt, index) => {
+          {sortedDebts.length === 0 ? (
+            <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-10 border border-slate-200/80 dark:border-slate-800 text-center shadow-sm">
+              <div className="w-16 h-16 rounded-3xl bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-3xl mx-auto mb-4">
+                🏆
+              </div>
+              <h3 className="font-bold text-xl text-slate-800 dark:text-white mb-1">
+                Zero Debts Logged — You Are Debt-Free!
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-5 leading-relaxed">
+                If you have loans or credit cards to smash, add them here to start your Snowball momentum.
+              </p>
+              <button
+                onClick={() => setIsAddingDebt(true)}
+                className="py-2.5 px-6 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs inline-flex items-center gap-2 shadow-md shadow-purple-600/20 active:scale-95 transition-transform"
+              >
+                <Plus className="w-4 h-4 stroke-[2.5]" />
+                Add Debt Account
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {sortedDebts.map((debt, index) => {
               const isTargetOne = index === 0 && debt.totalBalance > 0;
 
               return (
@@ -400,6 +441,7 @@ export const GoalsView: React.FC = () => {
               );
             })}
           </div>
+          )}
         </div>
       )}
 

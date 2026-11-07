@@ -215,11 +215,12 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                 onChange={(e) => setEnvelopeId(e.target.value)}
                 className="w-full px-4 py-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-purple-500 text-sm text-slate-800 dark:text-white focus:outline-none"
               >
+                <option value="">General Expense / No envelope</option>
                 {envelopes.map(env => {
                   const remaining = Math.max(0, env.allocatedAmount - (env.spentAmount || 0));
                   return (
                     <option key={env.id} value={env.id}>
-                      {env.icon} {env.name} ({settings.currencySymbol}{remaining} left)
+                      {env.icon} {env.name} ({settings.currencySymbol}{remaining.toFixed(2)} left)
                     </option>
                   );
                 })}

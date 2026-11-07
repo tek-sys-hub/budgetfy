@@ -104,7 +104,7 @@ export const StorageService = {
     const downloadAnchor = document.createElement('a');
     const dateStr = new Date().toISOString().split('T')[0];
     downloadAnchor.setAttribute('href', jsonString);
-    downloadAnchor.setAttribute('download', `ADHD_BudgetFlow_Backup_${dateStr}.json`);
+    downloadAnchor.setAttribute('download', `budgetfy_Backup_${dateStr}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();

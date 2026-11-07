@@ -129,8 +129,28 @@ export const EnvelopesView: React.FC = () => {
       </div>
 
       {/* Envelopes Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {envelopes.map(env => {
+      {envelopes.length === 0 ? (
+        <div className="bg-white dark:bg-[#111827] rounded-3xl p-10 border border-[#DDD7E8] dark:border-[#1F293D] text-center shadow-xs">
+          <div className="w-16 h-16 rounded-3xl bg-purple-100 dark:bg-purple-950/50 text-[#4A3561] dark:text-purple-300 flex items-center justify-center text-3xl mx-auto mb-4">
+            ✉️
+          </div>
+          <h3 className="font-serif font-bold text-xl text-[#241930] dark:text-slate-100 mb-1">
+            No spending envelopes created yet
+          </h3>
+          <p className="text-xs text-[#7F7094] dark:text-slate-400 max-w-md mx-auto mb-5 leading-relaxed">
+            Envelopes give every dollar a dedicated purpose (e.g. Groceries, Coffee Treats, Fun & Dopamine). Tap below to create your first envelope!
+          </p>
+          <button
+            onClick={() => setIsAdding(true)}
+            className="py-2.5 px-6 rounded-2xl bg-[#241930] dark:bg-indigo-600 hover:bg-[#3D2952] text-white font-bold text-xs inline-flex items-center gap-2 shadow-xs transition-transform active:scale-95"
+          >
+            <Plus className="w-4 h-4 stroke-[2.5]" />
+            Create First Envelope
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {envelopes.map(env => {
           const spent = env.spentAmount || 0;
           const remaining = Math.max(0, env.allocatedAmount - spent);
           const percent = Math.min(100, Math.round((spent / (env.allocatedAmount || 1)) * 100));
@@ -201,6 +221,7 @@ export const EnvelopesView: React.FC = () => {
           );
         })}
       </div>
+      )}
 
       {/* Add Envelope Modal */}
       {isAdding && (
