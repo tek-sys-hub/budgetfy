@@ -1,4 +1,4 @@
-import { AppData, UserSettings, SecuritySettings, PaycheckConfig, Envelope, RecurringBill, SavingsGoal, DebtItem, Transaction, ImpulseItem, SavingsChallenge, BrainDumpItem, SmallThingItem } from '../types/budget';
+import { AppData, UserSettings, SecuritySettings, PaycheckConfig, Envelope, RecurringBill, SavingsGoal, DebtItem, Transaction, ImpulseItem, SavingsChallenge, BrainDumpItem, SmallThingItem, ExtraIncomeItem } from '../types/budget';
 
 const STORAGE_KEY = 'budgetfy_user_data_v2';
 
@@ -39,6 +39,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [];
 export const INITIAL_IMPULSE_ITEMS: ImpulseItem[] = [];
 export const INITIAL_CHALLENGES: SavingsChallenge[] = [];
 export const INITIAL_BRAIN_DUMP: BrainDumpItem[] = [];
+export const INITIAL_EXTRA_INCOMES: ExtraIncomeItem[] = [];
 
 export const INITIAL_SMALL_THINGS: SmallThingItem[] = [
   { id: 'st-1', text: 'Set your name & checking balance in Settings', timeEstimate: '1 min', done: false },
@@ -62,6 +63,7 @@ export const DEFAULT_APP_DATA: AppData = {
   noSpendDates: [],
   brainDumpItems: INITIAL_BRAIN_DUMP,
   smallThings: INITIAL_SMALL_THINGS,
+  extraIncomes: INITIAL_EXTRA_INCOMES,
 };
 
 // Storage helper
@@ -97,6 +99,7 @@ export const StorageService = {
         noSpendDates: parsed.noSpendDates ?? [],
         brainDumpItems: parsed.brainDumpItems ?? [],
         smallThings: parsed.smallThings ?? DEFAULT_APP_DATA.smallThings,
+        extraIncomes: parsed.extraIncomes ?? [],
         activeMonth: parsed.activeMonth !== undefined ? parsed.activeMonth : DEFAULT_APP_DATA.activeMonth,
       };
     } catch (err) {
