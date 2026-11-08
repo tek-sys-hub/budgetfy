@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { BudgetProvider, useBudget } from './context/BudgetContext';
 import { Sidebar, NavItem } from './components/Sidebar';
 import { TopHeader } from './components/TopHeader';
@@ -252,6 +253,7 @@ export function App() {
   return (
     <BudgetProvider>
       <AppContent />
+      <Analytics />
     </BudgetProvider>
   );
 }
