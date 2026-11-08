@@ -11,6 +11,7 @@ import {
   Info
 } from 'lucide-react';
 import { useBudget } from '../../context/BudgetContext';
+import { ExpenseBreakdownChart } from '../ExpenseBreakdownChart';
 
 interface TodayViewProps {
   onOpenQuickAdd: () => void;
@@ -290,7 +291,14 @@ export const TodayView: React.FC<TodayViewProps> = ({
         </div>
       </div>
 
-      {/* 4. Bottom Row: What you logged + BRAIN DUMP */}
+      {/* 4. Where Your Expenses Go: Interactive Pie Chart & Trend Graph */}
+      <ExpenseBreakdownChart
+        transactions={transactions}
+        settings={settings}
+        onOpenQuickAdd={onOpenQuickAdd}
+      />
+
+      {/* 5. Bottom Row: What you logged + BRAIN DUMP */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Left: What you logged (7 cols) */}
         <div className="lg:col-span-7 bg-white dark:bg-[#111827] rounded-3xl p-6 border border-[#DDD7E8] dark:border-[#1F293D] shadow-xs flex flex-col justify-between">
