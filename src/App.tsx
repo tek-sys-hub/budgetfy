@@ -7,6 +7,7 @@ import { TodayView } from './components/views/TodayView';
 import { PlannerView } from './components/views/PlannerView';
 import { EnvelopesView } from './components/views/EnvelopesView';
 import { BillsView } from './components/views/BillsView';
+import { MoneyInView } from './components/views/MoneyInView';
 import { GoalsView } from './components/views/GoalsView';
 import { DebtView } from './components/views/DebtView';
 import { TransactionsView } from './components/views/TransactionsView';
@@ -118,10 +119,11 @@ const AppContent: React.FC = () => {
       case 'planner':
         return <PlannerView />;
       case 'bills':
-      case 'money-in':
         return <BillsView />;
+      case 'money-in':
+        return <MoneyInView onOpenQuickActions={() => setIsQuickActionsOpen(true)} />;
       case 'goals':
-        return <GoalsView />;
+        return <GoalsView onOpenQuickActions={() => setIsQuickActionsOpen(true)} />;
       case 'debt':
         return <DebtView />;
       case 'envelopes':

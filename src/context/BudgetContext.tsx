@@ -12,7 +12,8 @@ import {
   UserSettings, 
   DebtStrategy,
   ThemeMode,
-  SavingsChallenge 
+  SavingsChallenge,
+  ExtraIncomeItem
 } from '../types/budget';
 import { StorageService } from '../services/storage';
 import { IndexedDBService } from '../services/db';
@@ -32,6 +33,7 @@ interface BudgetContextType {
   noSpendDates: string[];
   brainDumpItems: { id: string; text: string; done: boolean; createdAt: string }[];
   smallThings: { id: string; text: string; timeEstimate: string; done: boolean }[];
+  extraIncomes: ExtraIncomeItem[];
   activeMonth: number;
   helpMode: boolean;
   focusMode: boolean;
@@ -59,8 +61,9 @@ interface BudgetContextType {
   deleteBill: (id: string) => void;
   toggleBillPaid: (id: string) => void;
 
-  addGoal: (goal: Omit<SavingsGoal, 'id' | 'currentAmount'>) => void;
-  contributeToGoal: (id: string, amount: number) => void;
+  addGoal: (goal: Omit<SavingsGoal, 'id' | 'currentAmount'> & { currentAmount?: number }) => void;
+  updateGoal: (id: string, updates: Partial<SavingsGoal>) => void;
+  contributeToGoal: (id: string, amount: number, options?: { date?: string; excludeFromSafeToSpend?: boolean }) => void;
   deleteGoal: (id: string) => void;
 
   addDebt: (debt: Omit<DebtItem, 'id'>) => void;
@@ -81,6 +84,13 @@ interface BudgetContextType {
   toggleBrainDumpItem: (id: string) => void;
   deleteBrainDumpItem: (id: string) => void;
   toggleSmallThing: (id: string) => void;
+
+  // Extra Incomes Actions
+  addExtraIncome: (income: Omit<ExtraIncomeItem, 'id' | 'createdAt'>) => void;
+  updateExtraIncome: (id: string, updates: Partial<ExtraIncomeItem>) => void;
+  deleteExtraIncome: (id: string) => void;
+  markExtraIncomeAsArrived: (id: string) => void;
+
   setActiveMonth: (monthIndex: number) => void;
   setHelpMode: (on: boolean | ((prev: boolean) => boolean)) => void;
   setFocusMode: (on: boolean | ((prev: boolean) => boolean)) => void;
@@ -384,13 +394,14 @@ export const BudgetProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   // Goal Actions
-  const addGoal = (goal: Omit<SavingsGoal, 'id' | 'currentAmount'>) => {
+  const addGoal = (goal: Omit<SavingsGoal, 'id' | 'currentAmount'> & { currentAmount?: number }) => {
     sound.playSuccess();
+    const currentAmt = goal.currentAmount || 0;
     const newGoal: SavingsGoal = {
       ...goal,
       id: 'goal-' + Date.now(),
-      currentAmount: 0,
-      isCompleted: false
+      currentAmount: currentAmt,
+      isCompleted: currentAmt >= goal.targetAmount
     };
     setData(prev => ({
       ...prev,
@@ -398,7 +409,15 @@ export const BudgetProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }));
   };
 
-  const contributeToGoal = (id: string, amount: number) => {
+  const updateGoal = (id: string, updates: Partial<SavingsGoal>) => {
+    sound.playTap();
+    setData(prev => ({
+      ...prev,
+      goals: prev.goals.map(g => g.id === id ? { ...g, ...updates } : g)
+    }));
+  };
+
+  const contributeToGoal = (id: string, amount: number, options?: { date?: string; excludeFromSafeToSpend?: boolean }) => {
     if (amount <= 0) return;
     setData(prev => {
       const goal = prev.goals.find(g => g.id === id);
@@ -413,7 +432,8 @@ export const BudgetProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         sound.playSuccess();
       }
 
-      // Also deduct from bank balance as an expense or goal allocation
+      const txDate = options?.date || new Date().toISOString().split('T')[0];
+
       return {
         ...prev,
         paycheckConfig: {
@@ -423,7 +443,9 @@ export const BudgetProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         goals: prev.goals.map(g => g.id === id ? { 
           ...g, 
           currentAmount: nextAmount,
-          isCompleted: isComplete 
+          isCompleted: isComplete,
+          contributionsCount: (g.contributionsCount || 0) + 1,
+          excludeFromSafeToSpend: options?.excludeFromSafeToSpend !== undefined ? options.excludeFromSafeToSpend : g.excludeFromSafeToSpend
         } : g),
         transactions: [
           {
@@ -432,9 +454,9 @@ export const BudgetProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             amount: amount,
             type: 'expense',
             category: 'Savings',
-            date: new Date().toISOString().split('T')[0],
+            date: txDate,
             dopamineTag: 'planned',
-            notes: 'Visual goal progress +1'
+            notes: options?.excludeFromSafeToSpend ? 'Kept out of safe to spend' : 'Visual goal progress +1'
           },
           ...prev.transactions
         ]
@@ -617,6 +639,129 @@ export const BudgetProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   };
 
+  // Extra Incomes Actions
+  const addExtraIncome = (income: Omit<ExtraIncomeItem, 'id' | 'createdAt'>) => {
+    sound.playSuccess();
+    const id = 'inc-' + Date.now();
+    const createdAt = new Date().toISOString();
+    let txId: string | undefined = undefined;
+
+    setData(prev => {
+      let updatedTransactions = prev.transactions;
+      let newBalance = prev.paycheckConfig.currentBankBalance;
+
+      // If already arrived, log to transactions & update bank balance
+      if (income.status === 'arrived') {
+        txId = 'tx-inc-' + Date.now();
+        const tx: Transaction = {
+          id: txId,
+          description: income.name,
+          amount: income.amount,
+          type: 'income',
+          category: income.category || 'Income',
+          date: income.expectedDate || new Date().toISOString().split('T')[0],
+          dopamineTag: 'treat',
+          notes: income.notes || 'Money in',
+        };
+        updatedTransactions = [tx, ...prev.transactions];
+        newBalance = Math.round((newBalance + income.amount) * 100) / 100;
+        triggerConfetti();
+      }
+
+      const newIncomeItem: ExtraIncomeItem = {
+        ...income,
+        id,
+        createdAt,
+        transactionId: txId,
+      };
+
+      return {
+        ...prev,
+        extraIncomes: [newIncomeItem, ...(prev.extraIncomes || [])],
+        transactions: updatedTransactions,
+        paycheckConfig: {
+          ...prev.paycheckConfig,
+          currentBankBalance: newBalance,
+        },
+      };
+    });
+  };
+
+  const updateExtraIncome = (id: string, updates: Partial<ExtraIncomeItem>) => {
+    sound.playTap();
+    setData(prev => ({
+      ...prev,
+      extraIncomes: (prev.extraIncomes || []).map(item =>
+        item.id === id ? { ...item, ...updates } : item
+      ),
+    }));
+  };
+
+  const markExtraIncomeAsArrived = (id: string) => {
+    sound.playSuccess();
+    triggerConfetti();
+    setData(prev => {
+      const item = (prev.extraIncomes || []).find(i => i.id === id);
+      if (!item) return prev;
+
+      const txId = 'tx-inc-' + Date.now();
+      const tx: Transaction = {
+        id: txId,
+        description: item.name,
+        amount: item.amount,
+        type: 'income',
+        category: item.category || 'Income',
+        date: new Date().toISOString().split('T')[0],
+        dopamineTag: 'treat',
+        notes: item.notes || 'Arrived extra income',
+      };
+
+      const newBalance = Math.round((prev.paycheckConfig.currentBankBalance + item.amount) * 100) / 100;
+
+      return {
+        ...prev,
+        extraIncomes: (prev.extraIncomes || []).map(i =>
+          i.id === id ? { ...i, status: 'arrived', transactionId: txId, expectedDate: tx.date } : i
+        ),
+        transactions: [tx, ...prev.transactions],
+        paycheckConfig: {
+          ...prev.paycheckConfig,
+          currentBankBalance: newBalance,
+        },
+      };
+    });
+  };
+
+  const deleteExtraIncome = (id: string) => {
+    sound.playTap();
+    setData(prev => {
+      const item = (prev.extraIncomes || []).find(i => i.id === id);
+      if (!item) return prev;
+
+      let updatedTransactions = prev.transactions;
+      let newBalance = prev.paycheckConfig.currentBankBalance;
+
+      // If it had a linked transaction and was arrived, remove transaction and revert bank balance
+      if (item.transactionId && item.status === 'arrived') {
+        const tx = prev.transactions.find(t => t.id === item.transactionId);
+        if (tx) {
+          updatedTransactions = prev.transactions.filter(t => t.id !== item.transactionId);
+          newBalance = Math.max(0, Math.round((newBalance - tx.amount) * 100) / 100);
+        }
+      }
+
+      return {
+        ...prev,
+        extraIncomes: (prev.extraIncomes || []).filter(i => i.id !== id),
+        transactions: updatedTransactions,
+        paycheckConfig: {
+          ...prev.paycheckConfig,
+          currentBankBalance: newBalance,
+        },
+      };
+    });
+  };
+
   const setActiveMonth = (monthIndex: number) => {
     sound.playTap();
     setData(prev => ({
@@ -720,6 +865,7 @@ export const BudgetProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         noSpendDates: data.noSpendDates || [],
         brainDumpItems: data.brainDumpItems || [],
         smallThings: data.smallThings || [],
+        extraIncomes: data.extraIncomes || [],
         activeMonth: data.activeMonth !== undefined ? data.activeMonth : new Date().getMonth(),
         helpMode,
         focusMode,
@@ -746,6 +892,7 @@ export const BudgetProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         toggleBillPaid,
 
         addGoal,
+        updateGoal,
         contributeToGoal,
         deleteGoal,
 
@@ -767,6 +914,10 @@ export const BudgetProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         toggleBrainDumpItem,
         deleteBrainDumpItem,
         toggleSmallThing,
+        addExtraIncome,
+        updateExtraIncome,
+        deleteExtraIncome,
+        markExtraIncomeAsArrived,
         setActiveMonth,
         setHelpMode,
         setFocusMode,

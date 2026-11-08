@@ -57,6 +57,9 @@ export interface SavingsGoal {
   color: string;
   category: string;
   isCompleted?: boolean;
+  monthlyContribution?: number;
+  contributionsCount?: number;
+  excludeFromSafeToSpend?: boolean;
 }
 
 export interface DebtItem {
@@ -141,6 +144,20 @@ export interface SmallThingItem {
   done: boolean;
 }
 
+export type IncomeStatus = 'arrived' | 'expected' | 'later';
+
+export interface ExtraIncomeItem {
+  id: string;
+  name: string;
+  amount: number;
+  expectedDate: string; // ISO YYYY-MM-DD
+  status: IncomeStatus;
+  category: string;
+  notes?: string;
+  transactionId?: string;
+  createdAt: string;
+}
+
 export interface AppData {
   version: number;
   lastUpdated: string;
@@ -157,5 +174,6 @@ export interface AppData {
   noSpendDates?: string[]; // array of ISO YYYY-MM-DD
   brainDumpItems?: BrainDumpItem[];
   smallThings?: SmallThingItem[];
+  extraIncomes?: ExtraIncomeItem[];
 }
 
