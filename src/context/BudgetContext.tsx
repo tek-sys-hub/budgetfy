@@ -117,10 +117,10 @@ export const BudgetProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     IndexedDBService.saveCompleteData(data);
   }, [data]);
 
-  // Load from IndexedDB on initial mount if available
+  // Load from IndexedDB on initial mount if available — keep whichever store is newest
   useEffect(() => {
     IndexedDBService.loadCompleteData().then(dbData => {
-      if (dbData) {
+      if (dbData && dbData.lastUpdated >= data.lastUpdated) {
         setData(dbData);
       }
     });
