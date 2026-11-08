@@ -45,7 +45,7 @@ export const ExpenseBreakdownChart: React.FC<ExpenseBreakdownChartProps> = ({
 
   // Filter expenses by selected timeScope
   const expenseTransactions = useMemo(() => {
-    return transactions.filter(t => {
+    return (transactions || []).filter(t => {
       if (t.type !== 'expense') return false;
       if (timeScope === 'today') {
         return t.date === todayStr;
@@ -92,7 +92,7 @@ export const ExpenseBreakdownChart: React.FC<ExpenseBreakdownChartProps> = ({
       const iso = d.toISOString().split('T')[0];
       const dayLabel = i === 0 ? 'Today' : d.toLocaleDateString('en-US', { weekday: 'short' });
 
-      const dayTotal = transactions
+      const dayTotal = (transactions || [])
         .filter(t => t.type === 'expense' && t.date === iso)
         .reduce((sum, t) => sum + t.amount, 0);
 

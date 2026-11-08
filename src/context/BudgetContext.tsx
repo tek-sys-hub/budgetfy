@@ -143,64 +143,72 @@ export const BudgetProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // ADHD Days Until Paycheck calculation
   const daysUntilPaycheck = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const payDate = new Date(data.paycheckConfig.nextPayDate + 'T00:00:00');
-    const diffTime = payDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return Math.max(0, diffDays);
-  }, [data.paycheckConfig.nextPayDate]);
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const rawDate = data.paycheckConfig?.nextPayDate || '';
+      const payDate = new Date(rawDate.includes('T') ? rawDate : rawDate + 'T00:00:00');
+      const time = isNaN(payDate.getTime()) ? (today.getTime() + 14 * 86400000) : payDate.getTime();
+      const diffTime = time - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return isNaN(diffDays) ? 14 : Math.max(0, diffDays);
+    } catch {
+      return 14;
+    }
+  }, [data.paycheckConfig?.nextPayDate]);
 
   // Bills that are unpaid and due before next paycheck
   const { upcomingBillsBeforePaycheck, upcomingBillsSum } = useMemo(() => {
-    const today = new Date();
-    const currentDay = today.getDate();
-    const payDate = new Date(data.paycheckConfig.nextPayDate + 'T00:00:00');
-    const payDay = payDate.getDate();
+    try {
+      const today = new Date();
+      const currentDay = today.getDate();
+      const rawDate = data.paycheckConfig?.nextPayDate || '';
+      const payDate = new Date(rawDate.includes('T') ? rawDate : rawDate + 'T00:00:00');
+      const payDay = isNaN(payDate.getTime()) ? currentDay + 14 : payDate.getDate();
 
-    // Determine if bill dueDay falls within the window [currentDay, payDay] or crossing month boundary
-    const upcoming = data.bills.filter(bill => {
-      if (bill.isPaidThisCycle) return false;
+      const billsList = data.bills || [];
+      const upcoming = billsList.filter(bill => {
+        if (bill.isPaidThisCycle) return false;
+        if (daysUntilPaycheck <= 0) return true;
 
-      if (daysUntilPaycheck <= 0) return true;
+        if (!isNaN(payDate.getTime()) && payDate.getMonth() === today.getMonth()) {
+          return bill.dueDay >= currentDay && bill.dueDay <= payDay;
+        } else {
+          return bill.dueDay >= currentDay || bill.dueDay <= payDay;
+        }
+      });
 
-      // Simple due date check in current billing span
-      if (payDate.getMonth() === today.getMonth()) {
-        return bill.dueDay >= currentDay && bill.dueDay <= payDay;
-      } else {
-        // Spans across month boundary (e.g. today is 28th, pay date is 5th)
-        return bill.dueDay >= currentDay || bill.dueDay <= payDay;
-      }
-    });
-
-    const sum = upcoming.reduce((acc, b) => acc + b.amount, 0);
-    return { upcomingBillsBeforePaycheck: upcoming, upcomingBillsSum: sum };
-  }, [data.bills, data.paycheckConfig.nextPayDate, daysUntilPaycheck]);
+      const sum = upcoming.reduce((acc, b) => acc + (b.amount || 0), 0);
+      return { upcomingBillsBeforePaycheck: upcoming, upcomingBillsSum: sum };
+    } catch {
+      return { upcomingBillsBeforePaycheck: [], upcomingBillsSum: 0 };
+    }
+  }, [data.bills, data.paycheckConfig?.nextPayDate, daysUntilPaycheck]);
 
   // Calculate Safe-To-Spend
-  // Formula: Bank Balance - Cushion Buffer - Upcoming Unpaid Bills
   const safeToSpendTotal = useMemo(() => {
-    const balance = data.paycheckConfig.currentBankBalance;
-    const cushion = data.paycheckConfig.cushionAmount;
-    const safe = balance - cushion - upcomingBillsSum;
+    const balance = data.paycheckConfig?.currentBankBalance || 0;
+    const cushion = data.paycheckConfig?.cushionAmount || 0;
+    const safe = balance - cushion - (upcomingBillsSum || 0);
     return Math.round(safe * 100) / 100;
-  }, [data.paycheckConfig.currentBankBalance, data.paycheckConfig.cushionAmount, upcomingBillsSum]);
+  }, [data.paycheckConfig?.currentBankBalance, data.paycheckConfig?.cushionAmount, upcomingBillsSum]);
 
   const safeToSpendPerDay = useMemo(() => {
-    const days = Math.max(1, daysUntilPaycheck);
-    return Math.round((safeToSpendTotal / days) * 100) / 100;
+    const days = Math.max(1, daysUntilPaycheck || 1);
+    const safe = safeToSpendTotal || 0;
+    return Math.round((safe / days) * 100) / 100;
   }, [safeToSpendTotal, daysUntilPaycheck]);
 
   const totalDebt = useMemo(() => {
-    return data.debts.reduce((sum, d) => sum + d.totalBalance, 0);
+    return (data.debts || []).reduce((sum, d) => sum + (d.totalBalance || 0), 0);
   }, [data.debts]);
 
   const totalSaved = useMemo(() => {
-    return data.goals.reduce((sum, g) => sum + g.currentAmount, 0);
+    return (data.goals || []).reduce((sum, g) => sum + (g.currentAmount || 0), 0);
   }, [data.goals]);
 
   const monthlyBillsTotal = useMemo(() => {
-    return data.bills.reduce((sum, b) => sum + b.amount, 0);
+    return (data.bills || []).reduce((sum, b) => sum + (b.amount || 0), 0);
   }, [data.bills]);
 
   // Transaction Actions
