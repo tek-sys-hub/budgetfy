@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   CalendarClock, 
   Plus, 
@@ -44,7 +44,20 @@ export const BillsView: React.FC = () => {
   const [expectedPay, setExpectedPay] = useState(paycheckConfig.expectedAmount.toString());
   const [frequency, setFrequency] = useState<Frequency>(paycheckConfig.frequency);
 
-  const displayedBills = filterMode === 'upcoming' ? upcomingBillsBeforePaycheck : bills;
+  const displayedBills = useMemo(() => {
+    const list = filterMode === 'upcoming' ? upcomingBillsBeforePaycheck : bills;
+    const currentDay = new Date().getDate();
+    return [...list].sort((a, b) => {
+      // 1. Unpaid bills appear first
+      if (a.isPaidThisCycle !== b.isPaidThisCycle) {
+        return a.isPaidThisCycle ? 1 : -1;
+      }
+      // 2. Chronological order by closest upcoming due date
+      const diffA = (a.dueDay - currentDay + 31) % 31;
+      const diffB = (b.dueDay - currentDay + 31) % 31;
+      return diffA - diffB;
+    });
+  }, [filterMode, upcomingBillsBeforePaycheck, bills]);
   const totalPaidCount = bills.filter(b => b.isPaidThisCycle).length;
 
   const handleCreateBill = (e: React.FormEvent) => {

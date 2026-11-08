@@ -186,6 +186,11 @@ export const BudgetProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         } else {
           return bill.dueDay >= currentDay || bill.dueDay <= payDay;
         }
+      }).sort((a, b) => {
+        // Sort chronologically by closest upcoming due date
+        const diffA = (a.dueDay - currentDay + 31) % 31;
+        const diffB = (b.dueDay - currentDay + 31) % 31;
+        return diffA - diffB;
       });
 
       const sum = upcoming.reduce((acc, b) => acc + (b.amount || 0), 0);
