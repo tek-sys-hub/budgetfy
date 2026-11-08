@@ -109,12 +109,12 @@ export interface ImpulseItem {
 export type ThemeMode = 'light' | 'dark' | 'vibrant' | 'zen';
 
 export interface SecuritySettings {
-  pinLockEnabled: boolean;
-  pinHash?: string;
-  biometricsEnabled: boolean;
-  biometricCredentialId?: string;
   hideBalances: boolean;
-  autoLockMinutes: number; // 0 = immediate, 1, 5, 15, -1 = never
+  pinLockEnabled?: boolean;
+  pinHash?: string;
+  biometricsEnabled?: boolean;
+  biometricCredentialId?: string;
+  autoLockMinutes?: number;
 }
 
 export interface UserSettings {

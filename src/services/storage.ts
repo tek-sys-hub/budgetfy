@@ -3,11 +3,7 @@ import { AppData, UserSettings, SecuritySettings, PaycheckConfig, Envelope, Recu
 const STORAGE_KEY = 'budgetfy_user_data_v2';
 
 export const DEFAULT_SECURITY_SETTINGS: SecuritySettings = {
-  pinLockEnabled: false,
-  pinHash: undefined,
-  biometricsEnabled: false,
   hideBalances: false,
-  autoLockMinutes: 5,
 };
 
 export const INITIAL_PAYCHECK_CONFIG: PaycheckConfig = {

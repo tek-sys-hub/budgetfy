@@ -1,19 +1,17 @@
 import React from 'react';
-import { Menu, Command, Sun, Moon, Eye, EyeOff, Lock, Shield } from 'lucide-react';
+import { Menu, Command, Sun, Moon, Eye, EyeOff, Shield } from 'lucide-react';
 import { useBudget } from '../context/BudgetContext';
 
 interface TopHeaderProps {
   onOpenMobileSidebar: () => void;
   onOpenQuickAdd: () => void;
   onOpenQuickActions: () => void;
-  onLockApp?: () => void;
 }
 
 export const TopHeader: React.FC<TopHeaderProps> = ({
   onOpenMobileSidebar,
   onOpenQuickAdd,
   onOpenQuickActions,
-  onLockApp,
 }) => {
   const { helpMode, setHelpMode, settings, updateSettings } = useBudget();
 
@@ -26,10 +24,6 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   const toggleHideBalances = () => {
     updateSettings({
       security: {
-        pinLockEnabled: settings.security?.pinLockEnabled ?? false,
-        pinHash: settings.security?.pinHash,
-        biometricsEnabled: settings.security?.biometricsEnabled ?? false,
-        autoLockMinutes: settings.security?.autoLockMinutes ?? 5,
         hideBalances: !isMasked,
       }
     });
@@ -87,17 +81,6 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
             {isMasked ? <EyeOff className="w-4 h-4 text-purple-600 dark:text-purple-400" /> : <Eye className="w-4 h-4" />}
             <span className="hidden sm:inline text-[11px]">{isMasked ? 'Hidden' : 'Peek'}</span>
           </button>
-
-          {/* Lock App Now Button (if PIN lock is enabled) */}
-          {settings.security?.pinLockEnabled && onLockApp && (
-            <button
-              onClick={onLockApp}
-              className="p-2 rounded-xl bg-white/80 dark:bg-[#221A2D] border border-[#DDD5E6] dark:border-[#382C48] text-[#6E5E82] dark:text-[#C5B8D8] hover:bg-white transition-all shadow-xs active:scale-95"
-              title="Lock budgetfy now"
-            >
-              <Lock className="w-4 h-4 text-[#4A3561] dark:text-indigo-400" />
-            </button>
-          )}
 
           {/* Quick actions Ctrl K */}
           <button

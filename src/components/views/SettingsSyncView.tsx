@@ -20,8 +20,6 @@ import {
   ShieldCheck,
   Trash2,
   AlertTriangle,
-  Lock,
-  Fingerprint,
   Eye,
   EyeOff,
   Shield
@@ -30,7 +28,6 @@ import QRCode from 'qrcode';
 import { useBudget } from '../../context/BudgetContext';
 import { StorageService } from '../../services/storage';
 import { IndexedDBService, db } from '../../services/db';
-import { SecurityService } from '../../services/security';
 import { AppData, Frequency, DebtStrategy } from '../../types/budget';
 
 export const SettingsSyncView: React.FC = () => {
@@ -77,93 +74,6 @@ export const SettingsSyncView: React.FC = () => {
   const [tableCounts, setTableCounts] = useState<Record<string, number>>({});
   const [dbPingStatus, setDbPingStatus] = useState<string | null>(null);
   const [inspectingTable, setInspectingTable] = useState<{ name: string; data: unknown[] } | null>(null);
-
-  // Security & App Lock states
-  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
-  const [newPin, setNewPin] = useState('');
-  const [confirmPin, setConfirmPin] = useState('');
-  const [pinError, setPinError] = useState('');
-  const [biometricsSupported, setBiometricsSupported] = useState(false);
-
-  useEffect(() => {
-    SecurityService.isBiometricsSupported().then(setBiometricsSupported);
-  }, []);
-
-  const handleSavePin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newPin.length < 4 || newPin.length > 6) {
-      setPinError('PIN must be 4 to 6 numeric digits.');
-      return;
-    }
-    if (newPin !== confirmPin) {
-      setPinError('PINs do not match. Please verify.');
-      return;
-    }
-
-    const hash = await SecurityService.hashPin(newPin);
-    updateSettings({
-      security: {
-        pinLockEnabled: true,
-        pinHash: hash,
-        biometricsEnabled: settings.security?.biometricsEnabled ?? false,
-        hideBalances: settings.security?.hideBalances ?? false,
-        autoLockMinutes: settings.security?.autoLockMinutes ?? 5,
-      }
-    });
-
-    setNewPin('');
-    setConfirmPin('');
-    setPinError('');
-    setIsPinModalOpen(false);
-    setSyncStatus('Security PIN enabled & saved securely! 🔒');
-    setTimeout(() => setSyncStatus(null), 3500);
-  };
-
-  const handleDisablePin = () => {
-    if (confirm('Turn off PIN lock? Anyone with physical access to your device will be able to open budgetfy.')) {
-      updateSettings({
-        security: {
-          pinLockEnabled: false,
-          pinHash: undefined,
-          biometricsEnabled: false,
-          hideBalances: settings.security?.hideBalances ?? false,
-          autoLockMinutes: settings.security?.autoLockMinutes ?? 5,
-        }
-      });
-      setSyncStatus('PIN lock turned off.');
-      setTimeout(() => setSyncStatus(null), 3000);
-    }
-  };
-
-  const handleToggleBiometrics = async (enabled: boolean) => {
-    if (enabled) {
-      const credId = await SecurityService.registerBiometrics(settings.userName || 'user');
-      updateSettings({
-        security: {
-          pinLockEnabled: settings.security?.pinLockEnabled ?? false,
-          pinHash: settings.security?.pinHash,
-          biometricsEnabled: true,
-          biometricCredentialId: credId || undefined,
-          hideBalances: settings.security?.hideBalances ?? false,
-          autoLockMinutes: settings.security?.autoLockMinutes ?? 5,
-        }
-      });
-      setSyncStatus('Biometric unlock enabled! 👆');
-      setTimeout(() => setSyncStatus(null), 3500);
-    } else {
-      updateSettings({
-        security: {
-          pinLockEnabled: settings.security?.pinLockEnabled ?? false,
-          pinHash: settings.security?.pinHash,
-          biometricsEnabled: false,
-          hideBalances: settings.security?.hideBalances ?? false,
-          autoLockMinutes: settings.security?.autoLockMinutes ?? 5,
-        }
-      });
-      setSyncStatus('Biometric unlock disabled.');
-      setTimeout(() => setSyncStatus(null), 3000);
-    }
-  };
 
   // Sync state when settings or config changes externally
   useEffect(() => {
@@ -683,7 +593,7 @@ export const SettingsSyncView: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. Security, App Lock & Privacy Shield */}
+      {/* 4. Privacy Shield */}
       <div className="bg-white dark:bg-[#111827] rounded-3xl p-6 border border-[#DDD7E8] dark:border-[#1F293D] shadow-xs space-y-4">
         <div className="flex items-center gap-2.5 pb-3 border-b border-[#ECE6F3] dark:border-[#1F293D]">
           <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
@@ -691,167 +601,31 @@ export const SettingsSyncView: React.FC = () => {
           </div>
           <div>
             <h3 className="font-serif font-bold text-base text-[#241930] dark:text-slate-100 flex items-center gap-2">
-              Security, App Lock & Privacy Shield
-              {settings.security?.pinLockEnabled ? (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
-                  ● Protected
-                </span>
-              ) : (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">
-                  Unlocked
-                </span>
-              )}
+              Privacy Shield
             </h3>
             <span className="text-xs text-[#7F7094] dark:text-slate-400">
-              PIN passcode lock, hardware biometrics (Face ID/Fingerprint), auto-lock, and privacy balance masking
+              Quickly mask numbers with {settings.currencySymbol}•••• when using budgetfy in public spaces
             </span>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* PIN Lock Management Card */}
-          <div className="p-4 rounded-2xl bg-[#FAF9FC] dark:bg-[#162032] border border-[#ECE6F3] dark:border-[#223049] flex flex-col justify-between space-y-3">
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-bold text-[#241930] dark:text-slate-200 flex items-center gap-1.5">
-                  <Lock className="w-4 h-4 text-purple-600 dark:text-indigo-400" />
-                  Passcode / PIN Lock
-                </span>
-                <span className="text-[10px] font-mono font-bold text-[#8C7D9E] dark:text-slate-400">
-                  {settings.security?.pinLockEnabled ? 'Active (SHA-256)' : 'Disabled'}
-                </span>
-              </div>
-              <p className="text-[11px] text-[#7F7094] dark:text-slate-400">
-                Requires entering your 4-6 digit security PIN every time you launch budgetfy.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 pt-1">
-              {settings.security?.pinLockEnabled ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setNewPin('');
-                      setConfirmPin('');
-                      setPinError('');
-                      setIsPinModalOpen(true);
-                    }}
-                    className="py-2 px-3.5 rounded-xl bg-[#241930] dark:bg-indigo-600 hover:bg-[#3D2952] text-white font-bold text-xs shadow-xs"
-                  >
-                    Change PIN
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleDisablePin}
-                    className="py-2 px-3.5 rounded-xl border border-rose-300 dark:border-rose-900/60 text-rose-600 dark:text-rose-400 text-xs font-bold hover:bg-rose-50 dark:hover:bg-rose-950/40"
-                  >
-                    Turn Off PIN
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setNewPin('');
-                    setConfirmPin('');
-                    setPinError('');
-                    setIsPinModalOpen(true);
-                  }}
-                  className="py-2.5 px-4 rounded-xl bg-[#241930] dark:bg-indigo-600 hover:bg-[#3D2952] text-white font-bold text-xs shadow-xs"
-                >
-                  + Set Up Security PIN
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Biometrics Card */}
-          <div className="p-4 rounded-2xl bg-[#FAF9FC] dark:bg-[#162032] border border-[#ECE6F3] dark:border-[#223049] flex flex-col justify-between space-y-3">
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-bold text-[#241930] dark:text-slate-200 flex items-center gap-1.5">
-                  <Fingerprint className="w-4 h-4 text-emerald-500" />
-                  Hardware Biometrics (Face ID / Fingerprint)
-                </span>
-                <span className={`text-[10px] font-mono font-bold ${biometricsSupported ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
-                  {biometricsSupported ? '● Supported' : 'Not detected'}
-                </span>
-              </div>
-              <p className="text-[11px] text-[#7F7094] dark:text-slate-400">
-                Unlock instantly using your device's biometric sensor (WebAuthn platform authenticator).
-              </p>
-            </div>
-
-            <label className="flex items-center justify-between cursor-pointer pt-1">
-              <span className="text-xs font-semibold text-[#241930] dark:text-slate-300">
-                Allow Biometric Unlock
-              </span>
-              <input
-                type="checkbox"
-                disabled={!biometricsSupported || !settings.security?.pinLockEnabled}
-                checked={Boolean(settings.security?.biometricsEnabled)}
-                onChange={e => handleToggleBiometrics(e.target.checked)}
-                className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 disabled:opacity-40"
-              />
-            </label>
-          </div>
-        </div>
-
-        {/* Toggles: Auto-Lock & Privacy Mode */}
-        <div className="pt-3 border-t border-[#ECE6F3] dark:border-[#1F293D] grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Auto-Lock Inactivity */}
-          <div>
-            <label className="block text-xs font-semibold text-[#5F4E75] dark:text-slate-300 mb-1.5">
-              Auto-Lock Inactivity Timeout
-            </label>
-            <select
-              value={settings.security?.autoLockMinutes ?? 5}
+        <div>
+          <label className="flex items-center justify-between p-3.5 rounded-2xl bg-[#FAF9FC] dark:bg-[#162032] border border-[#DDD5E6] dark:border-[#223049] cursor-pointer">
+            <span className="text-xs font-semibold text-[#241930] dark:text-slate-300 flex items-center gap-2.5">
+              {settings.security?.hideBalances ? <EyeOff className="w-4 h-4 text-purple-600 dark:text-indigo-400" /> : <Eye className="w-4 h-4 text-slate-400" />}
+              Mask dollar balances with {settings.currencySymbol}•••• (Privacy Peeking Protection)
+            </span>
+            <input
+              type="checkbox"
+              checked={Boolean(settings.security?.hideBalances)}
               onChange={e => updateSettings({
                 security: {
-                  pinLockEnabled: settings.security?.pinLockEnabled ?? false,
-                  pinHash: settings.security?.pinHash,
-                  biometricsEnabled: settings.security?.biometricsEnabled ?? false,
-                  hideBalances: settings.security?.hideBalances ?? false,
-                  autoLockMinutes: parseInt(e.target.value, 10),
+                  hideBalances: e.target.checked,
                 }
               })}
-              className="w-full px-4 py-2 rounded-2xl bg-[#FAF9FC] dark:bg-[#162032] border border-[#DDD5E6] dark:border-[#223049] text-xs font-bold text-[#241930] dark:text-slate-100 focus:outline-none"
-            >
-              <option value="0">Immediately on tab blur / background</option>
-              <option value="1">After 1 minute</option>
-              <option value="5">After 5 minutes (Recommended)</option>
-              <option value="15">After 15 minutes</option>
-              <option value="-1">Never auto-lock</option>
-            </select>
-          </div>
-
-          {/* Privacy Mode: Hide Balances */}
-          <div>
-            <label className="block text-xs font-semibold text-[#5F4E75] dark:text-slate-300 mb-1.5">
-              Privacy Shield (Public Peeking Protection)
-            </label>
-            <label className="flex items-center justify-between p-2 rounded-2xl bg-[#FAF9FC] dark:bg-[#162032] border border-[#DDD5E6] dark:border-[#223049] cursor-pointer">
-              <span className="text-xs font-medium text-[#241930] dark:text-slate-300 flex items-center gap-2">
-                {settings.security?.hideBalances ? <EyeOff className="w-4 h-4 text-purple-600 dark:text-indigo-400" /> : <Eye className="w-4 h-4 text-slate-400" />}
-                Mask balances with {settings.currencySymbol}••••
-              </span>
-              <input
-                type="checkbox"
-                checked={Boolean(settings.security?.hideBalances)}
-                onChange={e => updateSettings({
-                  security: {
-                    pinLockEnabled: settings.security?.pinLockEnabled ?? false,
-                    pinHash: settings.security?.pinHash,
-                    biometricsEnabled: settings.security?.biometricsEnabled ?? false,
-                    autoLockMinutes: settings.security?.autoLockMinutes ?? 5,
-                    hideBalances: e.target.checked,
-                  }
-                })}
-                className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500"
-              />
-            </label>
-          </div>
+              className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500"
+            />
+          </label>
         </div>
       </div>
 
@@ -1219,83 +993,7 @@ export const SettingsSyncView: React.FC = () => {
         </div>
       )}
 
-      {/* PIN Setup / Change Modal */}
-      {isPinModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white dark:bg-[#111827] w-full max-w-md rounded-3xl p-6 shadow-2xl border border-[#DDD7E8] dark:border-[#1F293D]">
-            <div className="flex items-center gap-2.5 mb-2">
-              <div className="w-10 h-10 rounded-2xl bg-purple-500/10 text-[#4A3561] dark:text-indigo-400 flex items-center justify-center font-bold">
-                <Lock className="w-5 h-5" />
-              </div>
-              <h3 className="text-lg font-serif font-bold text-[#241930] dark:text-slate-100">
-                Configure Security PIN
-              </h3>
-            </div>
-            <p className="text-xs text-[#7F7094] dark:text-slate-400 mb-4">
-              Enter a 4 to 6 digit numeric PIN. Your PIN is stored locally using one-way SHA-256 encryption.
-            </p>
-
-            <form onSubmit={handleSavePin} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-[#5F4E75] dark:text-slate-300 mb-1">
-                  New PIN (4-6 digits)
-                </label>
-                <input
-                  type="password"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength={6}
-                  required
-                  autoFocus
-                  placeholder="e.g. 1234"
-                  value={newPin}
-                  onChange={e => setNewPin(e.target.value.replace(/\D/g, ''))}
-                  className="w-full px-4 py-2.5 rounded-2xl bg-[#FAF9FC] dark:bg-[#162032] border border-[#DDD5E6] dark:border-[#223049] text-base font-bold font-mono text-[#241930] dark:text-slate-100 tracking-widest text-center"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-[#5F4E75] dark:text-slate-300 mb-1">
-                  Confirm PIN
-                </label>
-                <input
-                  type="password"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength={6}
-                  required
-                  placeholder="Repeat your PIN"
-                  value={confirmPin}
-                  onChange={e => setConfirmPin(e.target.value.replace(/\D/g, ''))}
-                  className="w-full px-4 py-2.5 rounded-2xl bg-[#FAF9FC] dark:bg-[#162032] border border-[#DDD5E6] dark:border-[#223049] text-base font-bold font-mono text-[#241930] dark:text-slate-100 tracking-widest text-center"
-                />
-              </div>
-
-              {pinError && (
-                <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-xs font-bold text-rose-600 dark:text-rose-300">
-                  {pinError}
-                </div>
-              )}
-
-              <div className="flex gap-2 justify-end pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsPinModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-500"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 rounded-2xl bg-[#241930] dark:bg-indigo-600 text-white font-bold text-xs shadow-xs"
-                >
-                  Save & Activate PIN
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* PIN Setup / Change Modal - removed */}
     </div>
   );
 };
