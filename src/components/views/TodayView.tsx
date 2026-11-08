@@ -168,13 +168,13 @@ export const TodayView: React.FC<TodayViewProps> = ({
             {/* Giant Serif Number */}
             <div className="my-2">
               <div className="text-5xl sm:text-6xl font-serif text-[#241930] dark:text-slate-100 font-normal tracking-tight">
-                {settings.currencySymbol}{remainingToday.toFixed(2)}
+                {settings.security?.hideBalances ? `${settings.currencySymbol}••••` : `${settings.currencySymbol}${remainingToday.toFixed(2)}`}
               </div>
             </div>
 
             {/* Explanation text */}
             <p className="text-xs text-[#75668B] dark:text-slate-400 mt-1 font-serif italic">
-              of today's starting {settings.currencySymbol}{dailyTarget.toFixed(2)} — {settings.currencySymbol}{safeToSpendTotal.toFixed(2)} has to last to the end of the pay cycle ({daysUntilPaycheck} days left)
+              of today's starting {settings.security?.hideBalances ? `${settings.currencySymbol}••••` : `${settings.currencySymbol}${dailyTarget.toFixed(2)}`} — {settings.security?.hideBalances ? `${settings.currencySymbol}••••` : `${settings.currencySymbol}${safeToSpendTotal.toFixed(2)}`} has to last to the end of the pay cycle ({daysUntilPaycheck} days left)
             </p>
 
             <button

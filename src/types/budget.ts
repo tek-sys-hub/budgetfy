@@ -105,6 +105,15 @@ export interface ImpulseItem {
 
 export type ThemeMode = 'light' | 'dark' | 'vibrant' | 'zen';
 
+export interface SecuritySettings {
+  pinLockEnabled: boolean;
+  pinHash?: string;
+  biometricsEnabled: boolean;
+  biometricCredentialId?: string;
+  hideBalances: boolean;
+  autoLockMinutes: number; // 0 = immediate, 1, 5, 15, -1 = never
+}
+
 export interface UserSettings {
   userName?: string;
   currency: string;
@@ -115,6 +124,7 @@ export interface UserSettings {
   shameFreeAffirmations: boolean;
   debtStrategy: DebtStrategy;
   lastBackupDate?: string;
+  security?: SecuritySettings;
 }
 
 export interface BrainDumpItem {

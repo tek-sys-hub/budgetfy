@@ -1,6 +1,14 @@
-import { AppData, UserSettings, PaycheckConfig, Envelope, RecurringBill, SavingsGoal, DebtItem, Transaction, ImpulseItem, SavingsChallenge, BrainDumpItem, SmallThingItem } from '../types/budget';
+import { AppData, UserSettings, SecuritySettings, PaycheckConfig, Envelope, RecurringBill, SavingsGoal, DebtItem, Transaction, ImpulseItem, SavingsChallenge, BrainDumpItem, SmallThingItem } from '../types/budget';
 
 const STORAGE_KEY = 'budgetfy_user_data_v2';
+
+export const DEFAULT_SECURITY_SETTINGS: SecuritySettings = {
+  pinLockEnabled: false,
+  pinHash: undefined,
+  biometricsEnabled: false,
+  hideBalances: false,
+  autoLockMinutes: 5,
+};
 
 export const INITIAL_PAYCHECK_CONFIG: PaycheckConfig = {
   nextPayDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -20,6 +28,7 @@ export const INITIAL_SETTINGS: UserSettings = {
   shameFreeAffirmations: true,
   debtStrategy: 'snowball',
   lastBackupDate: undefined,
+  security: DEFAULT_SECURITY_SETTINGS,
 };
 
 export const INITIAL_ENVELOPES: Envelope[] = [];
@@ -69,7 +78,14 @@ export const StorageService = {
       return {
         ...DEFAULT_APP_DATA,
         ...parsed,
-        settings: { ...DEFAULT_APP_DATA.settings, ...(parsed.settings || {}) },
+        settings: {
+          ...DEFAULT_APP_DATA.settings,
+          ...(parsed.settings || {}),
+          security: {
+            ...DEFAULT_SECURITY_SETTINGS,
+            ...(parsed.settings?.security || {})
+          }
+        },
         paycheckConfig: { ...DEFAULT_APP_DATA.paycheckConfig, ...(parsed.paycheckConfig || {}) },
         envelopes: parsed.envelopes ?? [],
         bills: parsed.bills ?? [],

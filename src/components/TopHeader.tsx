@@ -1,23 +1,38 @@
 import React from 'react';
-import { Menu, HelpCircle, Command, Sun, Moon } from 'lucide-react';
+import { Menu, Command, Sun, Moon, Eye, EyeOff, Lock, Shield } from 'lucide-react';
 import { useBudget } from '../context/BudgetContext';
 
 interface TopHeaderProps {
   onOpenMobileSidebar: () => void;
   onOpenQuickAdd: () => void;
   onOpenQuickActions: () => void;
+  onLockApp?: () => void;
 }
 
 export const TopHeader: React.FC<TopHeaderProps> = ({
   onOpenMobileSidebar,
   onOpenQuickAdd,
   onOpenQuickActions,
+  onLockApp,
 }) => {
   const { helpMode, setHelpMode, settings, updateSettings } = useBudget();
 
   const isDark = settings.themeMode === 'dark';
   const toggleTheme = () => {
     updateSettings({ themeMode: isDark ? 'light' : 'dark' });
+  };
+
+  const isMasked = Boolean(settings.security?.hideBalances);
+  const toggleHideBalances = () => {
+    updateSettings({
+      security: {
+        pinLockEnabled: settings.security?.pinLockEnabled ?? false,
+        pinHash: settings.security?.pinHash,
+        biometricsEnabled: settings.security?.biometricsEnabled ?? false,
+        autoLockMinutes: settings.security?.autoLockMinutes ?? 5,
+        hideBalances: !isMasked,
+      }
+    });
   };
 
   // Determine greeting based on current hour
@@ -48,7 +63,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
             <div className="text-[11px] font-bold tracking-widest text-[#7D6E8E] dark:text-[#A798B8] uppercase font-sans">
               {dateFormatted}
             </div>
-            <h1 className="text-3xl sm:text-4xl font-serif font-normal text-[#241930] dark:text-white tracking-tight">
+            <h1 className="text-2xl sm:text-4xl font-serif font-normal text-[#241930] dark:text-white tracking-tight">
               {greeting}{settings.userName?.trim() ? `, ${settings.userName.trim()}` : ''}
             </h1>
             <p className="text-xs text-[#877899] dark:text-[#9B8CAE] font-medium mt-0.5">
@@ -57,8 +72,33 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
           </div>
         </div>
 
-        {/* Top Right Controls (Quick actions, Help, Focus mode, Log a spend) */}
-        <div className="flex items-center flex-wrap gap-2.5">
+        {/* Top Right Controls (Privacy eye, Lock, Quick actions, Help, Theme) */}
+        <div className="flex items-center flex-wrap gap-2">
+          {/* Privacy Shield Toggle (Mask/Hide Dollar Balances) */}
+          <button
+            onClick={toggleHideBalances}
+            className={`p-2 rounded-xl border text-xs font-semibold transition-all shadow-xs active:scale-95 flex items-center gap-1.5 ${
+              isMasked
+                ? 'bg-purple-100 dark:bg-purple-950/70 border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300 font-bold'
+                : 'bg-white/80 dark:bg-[#221A2D] border-[#DDD5E6] dark:border-[#382C48] text-[#6E5E82] dark:text-[#C5B8D8] hover:bg-white'
+            }`}
+            title={isMasked ? 'Privacy Mask ON: Balances Hidden (Tap to show)' : 'Privacy Mask OFF: Tap to hide balances'}
+          >
+            {isMasked ? <EyeOff className="w-4 h-4 text-purple-600 dark:text-purple-400" /> : <Eye className="w-4 h-4" />}
+            <span className="hidden sm:inline text-[11px]">{isMasked ? 'Hidden' : 'Peek'}</span>
+          </button>
+
+          {/* Lock App Now Button (if PIN lock is enabled) */}
+          {settings.security?.pinLockEnabled && onLockApp && (
+            <button
+              onClick={onLockApp}
+              className="p-2 rounded-xl bg-white/80 dark:bg-[#221A2D] border border-[#DDD5E6] dark:border-[#382C48] text-[#6E5E82] dark:text-[#C5B8D8] hover:bg-white transition-all shadow-xs active:scale-95"
+              title="Lock budgetfy now"
+            >
+              <Lock className="w-4 h-4 text-[#4A3561] dark:text-indigo-400" />
+            </button>
+          )}
+
           {/* Quick actions Ctrl K */}
           <button
             onClick={onOpenQuickActions}
@@ -84,7 +124,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
             ?
           </button>
 
-          {/* Light / Dark Mode Toggle (Soft Pastel vs Modern Dark Night) */}
+          {/* Light / Dark Mode Toggle */}
           <button
             onClick={toggleTheme}
             className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all duration-200 select-none shadow-xs active:scale-95 ${
@@ -115,17 +155,8 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
               <div className="bg-white w-2.5 h-2.5 rounded-full shadow-xs" />
             </div>
           </button>
-
-          {/* Log a spend Primary Plum Button */}
-          <button
-            onClick={onOpenQuickAdd}
-            className="px-4 py-2 rounded-xl bg-[#241930] hover:bg-[#3A294E] text-white font-medium text-xs shadow-sm hover:shadow-md transition-all active:scale-95"
-          >
-            Log a spend
-          </button>
         </div>
       </div>
     </header>
   );
 };
-

@@ -16,11 +16,54 @@ import { QuickAddModal } from './components/QuickAddModal';
 import { AffordabilityCheckerModal } from './components/AffordabilityCheckerModal';
 import { ImpulseVaultModal } from './components/ImpulseVaultModal';
 import { QuickActionsModal } from './components/QuickActionsModal';
+import { AppLockScreen } from './components/AppLockScreen';
 
 const AppContent: React.FC = () => {
   const { addImpulseItem, settings } = useBudget();
   const [activeNav, setActiveNav] = useState<NavItem>('today');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // App PIN Lock & Security
+  const isPinConfigured = Boolean(settings.security?.pinLockEnabled && settings.security?.pinHash);
+  const [isLocked, setIsLocked] = useState<boolean>(() => isPinConfigured);
+
+  // Sync isLocked when PIN configuration changes
+  useEffect(() => {
+    if (!isPinConfigured) {
+      setIsLocked(false);
+    }
+  }, [isPinConfigured]);
+
+  // Auto-lock when user tabs away or leaves the app (if autoLock is enabled)
+  useEffect(() => {
+    if (!isPinConfigured) return;
+
+    let timeoutId: number | null = null;
+    const autoLockMinutes = settings.security?.autoLockMinutes ?? 5;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        if (autoLockMinutes === 0) {
+          setIsLocked(true);
+        } else if (autoLockMinutes > 0) {
+          timeoutId = window.setTimeout(() => {
+            setIsLocked(true);
+          }, autoLockMinutes * 60 * 1000);
+        }
+      } else {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [isPinConfigured, settings.security?.autoLockMinutes]);
 
   // Modals
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
@@ -94,6 +137,22 @@ const AppContent: React.FC = () => {
     }
   };
 
+  if (isLocked && settings.security?.pinHash) {
+    return (
+      <AppLockScreen
+        storedPinHash={settings.security.pinHash}
+        biometricsEnabled={settings.security.biometricsEnabled}
+        onUnlock={() => setIsLocked(false)}
+        onForgotPin={() => {
+          if (confirm('Forgot your PIN? To protect your privacy, resetting will clear local data so you can configure a fresh PIN. Proceed?')) {
+            localStorage.clear();
+            window.location.reload();
+          }
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#FAF8FC] dark:bg-[#0B0F19] text-[#241930] dark:text-[#F1F5F9] font-sans flex antialiased selection:bg-[#4A3561] selection:text-white transition-colors duration-200">
       {/* 1. Left Fixed Sidebar */}
@@ -120,6 +179,7 @@ const AppContent: React.FC = () => {
             setIsQuickAddOpen(true);
           }}
           onOpenQuickActions={() => setIsQuickActionsOpen(true)}
+          onLockApp={() => setIsLocked(true)}
         />
 
         {/* View Content */}
