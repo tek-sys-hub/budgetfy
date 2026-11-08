@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BudgetProvider, useBudget } from './context/BudgetContext';
 import { Sidebar, NavItem } from './components/Sidebar';
 import { TopHeader } from './components/TopHeader';
+import { BottomNav } from './components/BottomNav';
 import { TodayView } from './components/views/TodayView';
 import { PlannerView } from './components/views/PlannerView';
 import { EnvelopesView } from './components/views/EnvelopesView';
@@ -84,6 +85,8 @@ const AppContent: React.FC = () => {
         return <EnvelopesView />;
       case 'milestones':
         return <MilestonesView />;
+      case 'transactions':
+        return <TransactionsView />;
       case 'settings':
         return <SettingsSyncView />;
       default:
@@ -120,9 +123,21 @@ const AppContent: React.FC = () => {
         />
 
         {/* View Content */}
-        <main className="flex-1 px-4 sm:px-8 py-2">
+        <main className="flex-1 px-3 sm:px-8 py-2 pb-24 md:pb-8">
           {renderActiveView()}
         </main>
+
+        {/* Mobile Bottom Navigation Bar */}
+        <BottomNav
+          activeNav={activeNav}
+          onSelectNav={setActiveNav}
+          onOpenQuickAdd={() => {
+            setQuickAddInitialAmount(undefined);
+            setQuickAddInitialDesc(undefined);
+            setIsQuickAddOpen(true);
+          }}
+          onOpenMobileSidebar={() => setMobileSidebarOpen(true)}
+        />
       </div>
 
       {/* Modals */}

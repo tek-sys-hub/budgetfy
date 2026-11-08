@@ -22,6 +22,7 @@ export type NavItem =
   | 'debt' 
   | 'envelopes' 
   | 'milestones' 
+  | 'transactions'
   | 'settings';
 
 interface SidebarProps {
