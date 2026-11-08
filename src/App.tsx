@@ -129,7 +129,12 @@ const AppContent: React.FC = () => {
       case 'envelopes':
         return <EnvelopesView />;
       case 'milestones':
-        return <MilestonesView />;
+        return (
+          <MilestonesView 
+            onOpenQuickActions={() => setIsQuickActionsOpen(true)} 
+            onNavigateToGoals={() => setActiveNav('goals')} 
+          />
+        );
       case 'transactions':
         return <TransactionsView />;
       case 'settings':
