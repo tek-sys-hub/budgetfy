@@ -146,6 +146,17 @@ export interface SmallThingItem {
 
 export type IncomeStatus = 'arrived' | 'expected' | 'later';
 
+export type CalendarNoteCategory = 'reminder' | 'event' | 'todo' | 'urgent' | 'money';
+
+export interface CalendarNote {
+  id: string;
+  date: string; // ISO YYYY-MM-DD
+  text: string;
+  category?: CalendarNoteCategory;
+  completed?: boolean;
+  createdAt: string;
+}
+
 export interface ExtraIncomeItem {
   id: string;
   name: string;
@@ -175,5 +186,6 @@ export interface AppData {
   brainDumpItems?: BrainDumpItem[];
   smallThings?: SmallThingItem[];
   extraIncomes?: ExtraIncomeItem[];
+  calendarNotes?: CalendarNote[];
 }
 

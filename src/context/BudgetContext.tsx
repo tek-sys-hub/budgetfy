@@ -13,7 +13,8 @@ import {
   DebtStrategy,
   ThemeMode,
   SavingsChallenge,
-  ExtraIncomeItem
+  ExtraIncomeItem,
+  CalendarNote
 } from '../types/budget';
 import { StorageService } from '../services/storage';
 import { IndexedDBService } from '../services/db';
@@ -34,6 +35,7 @@ interface BudgetContextType {
   brainDumpItems: { id: string; text: string; done: boolean; createdAt: string }[];
   smallThings: { id: string; text: string; timeEstimate: string; done: boolean }[];
   extraIncomes: ExtraIncomeItem[];
+  calendarNotes: CalendarNote[];
   activeMonth: number;
   helpMode: boolean;
   focusMode: boolean;
@@ -90,6 +92,12 @@ interface BudgetContextType {
   updateExtraIncome: (id: string, updates: Partial<ExtraIncomeItem>) => void;
   deleteExtraIncome: (id: string) => void;
   markExtraIncomeAsArrived: (id: string) => void;
+
+  // Calendar Notes Actions
+  addCalendarNote: (note: Omit<CalendarNote, 'id' | 'createdAt'>) => void;
+  updateCalendarNote: (id: string, updates: Partial<CalendarNote>) => void;
+  deleteCalendarNote: (id: string) => void;
+  toggleCalendarNote: (id: string) => void;
 
   setActiveMonth: (monthIndex: number) => void;
   setHelpMode: (on: boolean | ((prev: boolean) => boolean)) => void;
@@ -767,6 +775,49 @@ export const BudgetProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   };
 
+  // Calendar Notes Actions
+  const addCalendarNote = (note: Omit<CalendarNote, 'id' | 'createdAt'>) => {
+    sound.playTap();
+    const newNote: CalendarNote = {
+      ...note,
+      id: 'cn-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
+      completed: note.completed ?? false,
+      createdAt: new Date().toISOString(),
+    };
+    setData(prev => ({
+      ...prev,
+      calendarNotes: [...(prev.calendarNotes || []), newNote],
+    }));
+  };
+
+  const updateCalendarNote = (id: string, updates: Partial<CalendarNote>) => {
+    sound.playTap();
+    setData(prev => ({
+      ...prev,
+      calendarNotes: (prev.calendarNotes || []).map(n =>
+        n.id === id ? { ...n, ...updates } : n
+      ),
+    }));
+  };
+
+  const deleteCalendarNote = (id: string) => {
+    sound.playTap();
+    setData(prev => ({
+      ...prev,
+      calendarNotes: (prev.calendarNotes || []).filter(n => n.id !== id),
+    }));
+  };
+
+  const toggleCalendarNote = (id: string) => {
+    sound.playSuccess();
+    setData(prev => ({
+      ...prev,
+      calendarNotes: (prev.calendarNotes || []).map(n =>
+        n.id === id ? { ...n, completed: !n.completed } : n
+      ),
+    }));
+  };
+
   const setActiveMonth = (monthIndex: number) => {
     sound.playTap();
     setData(prev => ({
@@ -871,6 +922,7 @@ export const BudgetProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         brainDumpItems: data.brainDumpItems || [],
         smallThings: data.smallThings || [],
         extraIncomes: data.extraIncomes || [],
+        calendarNotes: data.calendarNotes || [],
         activeMonth: data.activeMonth !== undefined ? data.activeMonth : new Date().getMonth(),
         helpMode,
         focusMode,
@@ -923,6 +975,10 @@ export const BudgetProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         updateExtraIncome,
         deleteExtraIncome,
         markExtraIncomeAsArrived,
+        addCalendarNote,
+        updateCalendarNote,
+        deleteCalendarNote,
+        toggleCalendarNote,
         setActiveMonth,
         setHelpMode,
         setFocusMode,

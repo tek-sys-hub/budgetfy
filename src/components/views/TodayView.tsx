@@ -8,7 +8,8 @@ import {
   Utensils, 
   Bus, 
   Sparkles,
-  Info
+  Info,
+  Calendar
 } from 'lucide-react';
 import { useBudget } from '../../context/BudgetContext';
 import { ExpenseBreakdownChart } from '../ExpenseBreakdownChart';
@@ -39,6 +40,8 @@ export const TodayView: React.FC<TodayViewProps> = ({
     deleteBrainDumpItem,
     smallThings,
     toggleSmallThing,
+    calendarNotes,
+    toggleCalendarNote,
     focusMode
   } = useBudget();
 
@@ -68,6 +71,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
   const dailyPercentSpent = dailyTarget > 0 ? Math.min(100, Math.round((todaySpentTotal / dailyTarget) * 100)) : 0;
 
   const completedSmallThingsCount = smallThings.filter(s => s.done).length;
+  const todayCalendarNotes = (calendarNotes || []).filter(n => n.date === todayStr);
 
   const handleBrainDumpSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -372,9 +376,49 @@ export const TodayView: React.FC<TodayViewProps> = ({
           )}
         </div>
 
-        {/* Right: BRAIN DUMP (5 cols) */}
+        {/* Right: BRAIN DUMP & TODAY'S CALENDAR NOTES (5 cols) */}
         <div className="lg:col-span-5 bg-white dark:bg-[#111827] rounded-3xl p-6 border border-[#DDD7E8] dark:border-[#1F293D] shadow-xs flex flex-col justify-between">
           <div>
+            {/* Calendar notes scheduled for today */}
+            {todayCalendarNotes.length > 0 && (
+              <div className="mb-4 p-3.5 rounded-2xl bg-[#EDE7F4]/60 dark:bg-[#1E162B] border border-[#DDD5E6] dark:border-[#2C213D]">
+                <div className="flex items-center justify-between text-xs font-bold text-[#4A3561] dark:text-purple-300 mb-2">
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5" />
+                    Today's Calendar Notes ({todayCalendarNotes.length})
+                  </span>
+                  <span className="text-[10px] font-mono">
+                    {todayCalendarNotes.filter(n => n.completed).length}/{todayCalendarNotes.length} done
+                  </span>
+                </div>
+                <div className="space-y-1.5">
+                  {todayCalendarNotes.map(n => (
+                    <div
+                      key={n.id}
+                      onClick={() => toggleCalendarNote(n.id)}
+                      className={`p-2 rounded-xl text-xs flex items-center justify-between gap-2 cursor-pointer transition-all border ${
+                        n.completed
+                          ? 'bg-white/40 dark:bg-black/20 border-transparent text-[#8C7D9E] line-through'
+                          : 'bg-white dark:bg-[#181121] border-[#DDD5E6] dark:border-[#2C213D] text-[#241930] dark:text-white font-medium hover:border-[#4A3561]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className={`w-3.5 h-3.5 rounded-md border flex items-center justify-center text-[8px] shrink-0 ${
+                          n.completed ? 'bg-[#4A3561] text-white border-[#4A3561]' : 'border-[#8C7D9E]'
+                        }`}>
+                          {n.completed && '✓'}
+                        </div>
+                        <span className="truncate">{n.text}</span>
+                      </div>
+                      <span className="text-[9px] uppercase px-1.5 py-0.5 rounded-md bg-[#FAF9FC] dark:bg-[#251A33] text-[#7F7094] border border-[#ECE6F3] shrink-0">
+                        {n.category || 'note'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-[#75668B] dark:text-slate-400 mb-3">
               <span className="flex items-center gap-1.5">
                 Brain dump

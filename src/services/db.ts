@@ -10,7 +10,9 @@ import {
   BrainDumpItem,
   AppData,
   UserSettings,
-  PaycheckConfig
+  PaycheckConfig,
+  ExtraIncomeItem,
+  CalendarNote
 } from '../types/budget';
 import { DEFAULT_APP_DATA } from './storage';
 
@@ -119,6 +121,8 @@ export const IndexedDBService = {
         { key: 'paycheckConfig', value: DEFAULT_APP_DATA.paycheckConfig },
         { key: 'noSpendDates', value: DEFAULT_APP_DATA.noSpendDates },
         { key: 'smallThings', value: DEFAULT_APP_DATA.smallThings },
+        { key: 'extraIncomes', value: DEFAULT_APP_DATA.extraIncomes },
+        { key: 'calendarNotes', value: DEFAULT_APP_DATA.calendarNotes },
         { key: 'activeMonth', value: DEFAULT_APP_DATA.activeMonth },
         { key: 'version', value: DEFAULT_APP_DATA.version },
         { key: 'lastUpdated', value: new Date().toISOString() }
@@ -169,6 +173,8 @@ export const IndexedDBService = {
         transactions: transactions || [],
         brainDumpItems: brainDumpItems || [],
         smallThings: (metaMap.get('smallThings') as AppData['smallThings']) || DEFAULT_APP_DATA.smallThings,
+        extraIncomes: (metaMap.get('extraIncomes') as ExtraIncomeItem[]) || [],
+        calendarNotes: (metaMap.get('calendarNotes') as CalendarNote[]) || [],
         noSpendDates: (metaMap.get('noSpendDates') as string[]) || [],
         activeMonth: (metaMap.get('activeMonth') as number) ?? DEFAULT_APP_DATA.activeMonth
       };
@@ -220,6 +226,8 @@ export const IndexedDBService = {
           { key: 'paycheckConfig', value: data.paycheckConfig },
           { key: 'noSpendDates', value: data.noSpendDates },
           { key: 'smallThings', value: data.smallThings },
+          { key: 'extraIncomes', value: data.extraIncomes || [] },
+          { key: 'calendarNotes', value: data.calendarNotes || [] },
           { key: 'activeMonth', value: data.activeMonth },
           { key: 'version', value: data.version },
           { key: 'lastUpdated', value: new Date().toISOString() }
