@@ -1,60 +1,62 @@
-import React, { useState } from 'react';
-import { 
-  TrendingDown, 
-  Plus, 
-  Sparkles, 
-  Flame, 
-  Trash2, 
-  DollarSign, 
-  Check, 
-  CreditCard, 
-  ShieldAlert, 
-  Clock, 
+import React, { useState } from "react";
+import {
+  TrendingDown,
+  Plus,
+  Sparkles,
+  Flame,
+  Trash2,
+  DollarSign,
+  Check,
+  CreditCard,
+  ShieldAlert,
+  Clock,
   ArrowRight,
   HelpCircle,
-  Award
-} from 'lucide-react';
-import { useBudget } from '../../context/BudgetContext';
-import { DebtItem, DebtStrategy } from '../../types/budget';
+  Award,
+} from "lucide-react";
+import { useBudget } from "../../context/BudgetContext";
+import { DebtItem, DebtStrategy } from "../../types/budget";
 
 export const DebtView: React.FC = () => {
-  const { 
-    debts, 
-    totalDebt, 
-    settings, 
-    addDebt, 
-    updateDebt, 
-    makeDebtPayment, 
-    deleteDebt, 
+  const {
+    debts,
+    totalDebt,
+    settings,
+    addDebt,
+    updateDebt,
+    makeDebtPayment,
+    deleteDebt,
     setDebtStrategy,
-    triggerConfetti 
+    triggerConfetti,
   } = useBudget();
 
   // Modals & form state
   const [isAddingDebt, setIsAddingDebt] = useState(false);
-  const [debtName, setDebtName] = useState('');
-  const [debtBalance, setDebtBalance] = useState('');
-  const [debtMinPay, setDebtMinPay] = useState('');
-  const [debtApr, setDebtApr] = useState('');
-  const [debtDueDay, setDebtDueDay] = useState('15');
+  const [debtName, setDebtName] = useState("");
+  const [debtBalance, setDebtBalance] = useState("");
+  const [debtMinPay, setDebtMinPay] = useState("");
+  const [debtApr, setDebtApr] = useState("");
+  const [debtDueDay, setDebtDueDay] = useState("15");
 
   // Pay modal state
-  const [selectedDebtToPay, setSelectedDebtToPay] = useState<DebtItem | null>(null);
-  const [paymentAmount, setPaymentAmount] = useState('');
+  const [selectedDebtToPay, setSelectedDebtToPay] = useState<DebtItem | null>(
+    null,
+  );
+  const [paymentAmount, setPaymentAmount] = useState("");
 
   // Extra payment simulator state
   const [extraMonthlyBoost, setExtraMonthlyBoost] = useState<number>(50);
 
   // Sort debts based on strategy
   const sortedDebts = [...debts].sort((a, b) => {
-    if (settings.debtStrategy === 'snowball') {
+    if (settings.debtStrategy === "snowball") {
       return a.totalBalance - b.totalBalance; // Lowest balance first (dopamine wins)
     } else {
       return b.interestRate - a.interestRate; // Highest interest first
     }
   });
 
-  const targetDebt = sortedDebts.find(d => d.totalBalance > 0);
+  const targetDebt = sortedDebts.find((d) => d.totalBalance > 0);
   const totalMinPayments = debts.reduce((sum, d) => sum + d.minimumPayment, 0);
 
   const handleCreateDebt = (e: React.FormEvent) => {
@@ -71,15 +73,15 @@ export const DebtView: React.FC = () => {
       minimumPayment: minPay,
       interestRate: apr,
       dueDay,
-      color: '#EF4444',
-      icon: '💳',
+      color: "#EF4444",
+      icon: "💳",
       extraPaymentThisMonth: 0,
     });
 
-    setDebtName('');
-    setDebtBalance('');
-    setDebtMinPay('');
-    setDebtApr('');
+    setDebtName("");
+    setDebtBalance("");
+    setDebtMinPay("");
+    setDebtApr("");
     setIsAddingDebt(false);
   };
 
@@ -90,7 +92,7 @@ export const DebtView: React.FC = () => {
     if (isNaN(amt) || amt <= 0) return;
 
     makeDebtPayment(selectedDebtToPay.id, amt);
-    setPaymentAmount('');
+    setPaymentAmount("");
     setSelectedDebtToPay(null);
   };
 
@@ -106,7 +108,8 @@ export const DebtView: React.FC = () => {
             </h2>
           </div>
           <p className="text-xs text-[#7F7094] dark:text-slate-400 mt-1 font-sans">
-            ADHD dopamine gamification: smash one debt at a time until you're completely debt-free!
+            ADHD dopamine gamification: smash one debt at a time until you're
+            completely debt-free!
           </p>
         </div>
 
@@ -114,22 +117,22 @@ export const DebtView: React.FC = () => {
           {/* Strategy Toggle */}
           <div className="flex rounded-2xl bg-[#F5F2F9] dark:bg-[#162032] p-1 border border-[#E5DEEE] dark:border-[#223049] flex-1 sm:flex-initial">
             <button
-              onClick={() => setDebtStrategy('snowball')}
+              onClick={() => setDebtStrategy("snowball")}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                settings.debtStrategy === 'snowball'
-                  ? 'bg-[#241930] dark:bg-indigo-600 text-white shadow-xs'
-                  : 'text-[#645674] dark:text-slate-400 hover:text-[#241930]'
+                settings.debtStrategy === "snowball"
+                  ? "bg-[#241930] dark:bg-indigo-600 text-white shadow-xs"
+                  : "text-[#645674] dark:text-slate-400 hover:text-[#241930]"
               }`}
               title="Lowest balance first for fast dopamine wins"
             >
               ⚡ Snowball (ADHD Fav)
             </button>
             <button
-              onClick={() => setDebtStrategy('avalanche')}
+              onClick={() => setDebtStrategy("avalanche")}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                settings.debtStrategy === 'avalanche'
-                  ? 'bg-[#241930] dark:bg-indigo-600 text-white shadow-xs'
-                  : 'text-[#645674] dark:text-slate-400 hover:text-[#241930]'
+                settings.debtStrategy === "avalanche"
+                  ? "bg-[#241930] dark:bg-indigo-600 text-white shadow-xs"
+                  : "text-[#645674] dark:text-slate-400 hover:text-[#241930]"
               }`}
               title="Highest APR first to mathematically save maximum money"
             >
@@ -154,10 +157,11 @@ export const DebtView: React.FC = () => {
             Total Debt Remaining
           </span>
           <div className="text-3xl font-serif font-bold text-[#241930] dark:text-slate-100 mt-1">
-            {settings.currencySymbol}{totalDebt.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            {settings.currencySymbol}
+            {totalDebt.toLocaleString("en-US", { minimumFractionDigits: 2 })}
           </div>
           <span className="text-[11px] text-[#75668B] dark:text-slate-400 mt-0.5 block">
-            Across {debts.length} active account{debts.length === 1 ? '' : 's'}
+            Across {debts.length} active account{debts.length === 1 ? "" : "s"}
           </span>
         </div>
 
@@ -166,7 +170,8 @@ export const DebtView: React.FC = () => {
             Monthly Minimum Required
           </span>
           <div className="text-3xl font-serif font-bold text-rose-600 dark:text-rose-400 mt-1">
-            {settings.currencySymbol}{totalMinPayments.toFixed(2)}
+            {settings.currencySymbol}
+            {totalMinPayments.toFixed(2)}
           </div>
           <span className="text-[11px] text-[#75668B] dark:text-slate-400 mt-0.5 block">
             Committed from checking every month
@@ -178,10 +183,14 @@ export const DebtView: React.FC = () => {
             Current Strategy
           </span>
           <div className="text-xl font-serif font-bold text-[#4A3561] dark:text-indigo-400 mt-1 flex items-center gap-1.5">
-            {settings.debtStrategy === 'snowball' ? '⚡ Debt Snowball' : '🏔️ Debt Avalanche'}
+            {settings.debtStrategy === "snowball"
+              ? "⚡ Debt Snowball"
+              : "🏔️ Debt Avalanche"}
           </div>
           <span className="text-[11px] text-[#75668B] dark:text-slate-400 mt-0.5 block">
-            {settings.debtStrategy === 'snowball' ? 'Fastest psychological dopamine wins' : 'Minimize total interest paid'}
+            {settings.debtStrategy === "snowball"
+              ? "Smallest Dept First"
+              : "Big Intrest First"}
           </span>
         </div>
       </div>
@@ -202,15 +211,20 @@ export const DebtView: React.FC = () => {
                   {targetDebt.name}
                 </h3>
                 <p className="text-xs text-purple-200 dark:text-slate-300 font-sans mt-0.5">
-                  Min Payment: {settings.currencySymbol}{targetDebt.minimumPayment}/mo • APR: {targetDebt.interestRate}% • Due Day {targetDebt.dueDay}
+                  Min Payment: {settings.currencySymbol}
+                  {targetDebt.minimumPayment}/mo • APR:{" "}
+                  {targetDebt.interestRate}% • Due Day {targetDebt.dueDay}
                 </p>
               </div>
             </div>
 
             <div className="text-left sm:text-right">
-              <span className="text-xs font-mono text-purple-200 dark:text-slate-400 uppercase block">Remaining Balance</span>
+              <span className="text-xs font-mono text-purple-200 dark:text-slate-400 uppercase block">
+                Remaining Balance
+              </span>
               <div className="text-3xl sm:text-4xl font-serif font-bold text-amber-300 font-mono">
-                {settings.currencySymbol}{targetDebt.totalBalance.toFixed(2)}
+                {settings.currencySymbol}
+                {targetDebt.totalBalance.toFixed(2)}
               </div>
             </div>
           </div>
@@ -218,7 +232,9 @@ export const DebtView: React.FC = () => {
           {/* Quick Paydown Buttons */}
           <div className="mt-5 pt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-purple-200 dark:text-slate-300">Quick Pay:</span>
+              <span className="text-xs font-semibold text-purple-200 dark:text-slate-300">
+                Quick Pay:
+              </span>
               <button
                 onClick={() => {
                   setSelectedDebtToPay(targetDebt);
@@ -226,7 +242,8 @@ export const DebtView: React.FC = () => {
                 }}
                 className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold"
               >
-                Min: {settings.currencySymbol}{targetDebt.minimumPayment}
+                Min: {settings.currencySymbol}
+                {targetDebt.minimumPayment}
               </button>
               <button
                 onClick={() => {
@@ -264,7 +281,8 @@ export const DebtView: React.FC = () => {
             YOU ARE 100% DEBT-FREE! 🏆🎉
           </h3>
           <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-1">
-            Zero debt balance remaining. Every dollar you earn now belongs completely to you!
+            Zero debt balance remaining. Every dollar you earn now belongs
+            completely to you!
           </p>
         </div>
       )}
@@ -278,21 +296,23 @@ export const DebtView: React.FC = () => {
           </h3>
         </div>
         <p className="text-xs text-[#7F7094] dark:text-slate-400 mb-4 font-sans">
-          See how an extra $25, $50, or $100 per month exponentially accelerates your debt-free date!
+          See how an extra $25, $50, or $100 per month exponentially accelerates
+          your debt-free date!
         </p>
 
         <div className="flex flex-wrap items-center gap-3">
-          {[25, 50, 100, 200].map(amt => (
+          {[25, 50, 100, 200].map((amt) => (
             <button
               key={amt}
               onClick={() => setExtraMonthlyBoost(amt)}
               className={`px-4 py-2 rounded-2xl text-xs font-bold border transition-all ${
                 extraMonthlyBoost === amt
-                  ? 'bg-[#241930] dark:bg-indigo-600 text-white border-[#241930] dark:border-indigo-600 shadow-xs'
-                  : 'bg-[#FAF9FC] dark:bg-[#162032] border-[#E8E2F0] dark:border-[#223049] text-[#241930] dark:text-slate-300 hover:border-[#4A3561]'
+                  ? "bg-[#241930] dark:bg-indigo-600 text-white border-[#241930] dark:border-indigo-600 shadow-xs"
+                  : "bg-[#FAF9FC] dark:bg-[#162032] border-[#E8E2F0] dark:border-[#223049] text-[#241930] dark:text-slate-300 hover:border-[#4A3561]"
               }`}
             >
-              +{settings.currencySymbol}{amt} / month extra
+              +{settings.currencySymbol}
+              {amt} / month extra
             </button>
           ))}
         </div>
@@ -301,7 +321,13 @@ export const DebtView: React.FC = () => {
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-amber-500" />
             <span className="text-[#241930] dark:text-slate-200">
-              Adding <strong>{settings.currencySymbol}{extraMonthlyBoost}/mo</strong> saves an estimated <strong>4 to 9 months</strong> of interest payments!
+              Adding{" "}
+              <strong>
+                {settings.currencySymbol}
+                {extraMonthlyBoost}/mo
+              </strong>{" "}
+              saves an estimated <strong>4 to 9 months</strong> of interest
+              payments!
             </span>
           </div>
           <span className="font-mono text-[11px] font-bold text-[#4A3561] dark:text-indigo-400">
@@ -317,7 +343,10 @@ export const DebtView: React.FC = () => {
             All Debts ({debts.length})
           </h3>
           <span className="text-xs text-[#7F7094] dark:text-slate-400">
-            Ordered by {settings.debtStrategy === 'snowball' ? 'Snowball (Lowest Balance)' : 'Avalanche (Highest APR)'}
+            Ordered by{" "}
+            {settings.debtStrategy === "snowball"
+              ? "Snowball (Lowest Balance)"
+              : "Avalanche (Highest APR)"}
           </span>
         </div>
 
@@ -328,8 +357,8 @@ export const DebtView: React.FC = () => {
               key={debt.id}
               className={`p-5 rounded-3xl border transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
                 isTarget
-                  ? 'bg-[#FAF8FC] dark:bg-[#141E30] border-[#4A3561] dark:border-indigo-500 shadow-sm ring-1 ring-[#4A3561]/20'
-                  : 'bg-white dark:bg-[#111827] border-[#DDD7E8] dark:border-[#1F293D]'
+                  ? "bg-[#FAF8FC] dark:bg-[#141E30] border-[#4A3561] dark:border-indigo-500 shadow-sm ring-1 ring-[#4A3561]/20"
+                  : "bg-white dark:bg-[#111827] border-[#DDD7E8] dark:border-[#1F293D]"
               }`}
             >
               <div className="flex items-start gap-3">
@@ -348,16 +377,21 @@ export const DebtView: React.FC = () => {
                     )}
                   </div>
                   <div className="text-xs text-[#7F7094] dark:text-slate-400 mt-0.5">
-                    Min: {settings.currencySymbol}{debt.minimumPayment}/mo • APR: {debt.interestRate}% • Due Day: {debt.dueDay}
+                    Min: {settings.currencySymbol}
+                    {debt.minimumPayment}/mo • APR: {debt.interestRate}% • Due
+                    Day: {debt.dueDay}
                   </div>
                 </div>
               </div>
 
               <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
                 <div className="text-left sm:text-right font-mono">
-                  <span className="text-xs text-[#8C7D9E] dark:text-slate-400 block font-sans">Balance</span>
+                  <span className="text-xs text-[#8C7D9E] dark:text-slate-400 block font-sans">
+                    Balance
+                  </span>
                   <span className="text-xl font-serif font-bold text-[#241930] dark:text-slate-100">
-                    {settings.currencySymbol}{debt.totalBalance.toFixed(2)}
+                    {settings.currencySymbol}
+                    {debt.totalBalance.toFixed(2)}
                   </span>
                 </div>
 
@@ -394,7 +428,10 @@ export const DebtView: React.FC = () => {
               Pay Down {selectedDebtToPay.name}
             </h3>
             <p className="text-xs text-[#7F7094] dark:text-slate-400 mb-4">
-              Current balance: {settings.currencySymbol}{selectedDebtToPay.totalBalance.toFixed(2)} • Minimum: {settings.currencySymbol}{selectedDebtToPay.minimumPayment}
+              Current balance: {settings.currencySymbol}
+              {selectedDebtToPay.totalBalance.toFixed(2)} • Minimum:{" "}
+              {settings.currencySymbol}
+              {selectedDebtToPay.minimumPayment}
             </p>
 
             <form onSubmit={handlePaySubmit} className="space-y-4">
@@ -409,7 +446,7 @@ export const DebtView: React.FC = () => {
                   required
                   placeholder={selectedDebtToPay.minimumPayment.toString()}
                   value={paymentAmount}
-                  onChange={e => setPaymentAmount(e.target.value)}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-2xl bg-[#FAF9FC] dark:bg-[#162032] border border-[#DDD5E6] dark:border-[#223049] text-2xl font-mono font-bold text-[#241930] dark:text-slate-100 focus:outline-none focus:border-[#4A3561]"
                 />
               </div>
@@ -417,21 +454,31 @@ export const DebtView: React.FC = () => {
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => setPaymentAmount(selectedDebtToPay.minimumPayment.toString())}
+                  onClick={() =>
+                    setPaymentAmount(
+                      selectedDebtToPay.minimumPayment.toString(),
+                    )
+                  }
                   className="px-3 py-1.5 rounded-xl text-xs bg-[#F5F2F9] dark:bg-[#162032] text-[#4A3561] dark:text-slate-300 font-bold"
                 >
                   Min: ${selectedDebtToPay.minimumPayment}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setPaymentAmount((selectedDebtToPay.minimumPayment + 50).toString())}
+                  onClick={() =>
+                    setPaymentAmount(
+                      (selectedDebtToPay.minimumPayment + 50).toString(),
+                    )
+                  }
                   className="px-3 py-1.5 rounded-xl text-xs bg-[#F5F2F9] dark:bg-[#162032] text-[#4A3561] dark:text-slate-300 font-bold"
                 >
                   Min + $50 Boost
                 </button>
                 <button
                   type="button"
-                  onClick={() => setPaymentAmount(selectedDebtToPay.totalBalance.toString())}
+                  onClick={() =>
+                    setPaymentAmount(selectedDebtToPay.totalBalance.toString())
+                  }
                   className="px-3 py-1.5 rounded-xl text-xs bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold"
                 >
                   Pay in Full! 🎉
@@ -476,7 +523,7 @@ export const DebtView: React.FC = () => {
                   required
                   placeholder="e.g. Visa Card, Car Loan, Medical Bill"
                   value={debtName}
-                  onChange={e => setDebtName(e.target.value)}
+                  onChange={(e) => setDebtName(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-2xl bg-[#FAF9FC] dark:bg-[#162032] border border-[#DDD5E6] dark:border-[#223049] text-xs text-[#241930] dark:text-slate-100 focus:outline-none focus:border-[#4A3561]"
                 />
               </div>
@@ -492,7 +539,7 @@ export const DebtView: React.FC = () => {
                     required
                     placeholder="1200.00"
                     value={debtBalance}
-                    onChange={e => setDebtBalance(e.target.value)}
+                    onChange={(e) => setDebtBalance(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-2xl bg-[#FAF9FC] dark:bg-[#162032] border border-[#DDD5E6] dark:border-[#223049] text-xs font-mono font-bold text-[#241930] dark:text-slate-100 focus:outline-none focus:border-[#4A3561]"
                   />
                 </div>
@@ -507,7 +554,7 @@ export const DebtView: React.FC = () => {
                     required
                     placeholder="45.00"
                     value={debtMinPay}
-                    onChange={e => setDebtMinPay(e.target.value)}
+                    onChange={(e) => setDebtMinPay(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-2xl bg-[#FAF9FC] dark:bg-[#162032] border border-[#DDD5E6] dark:border-[#223049] text-xs font-mono font-bold text-[#241930] dark:text-slate-100 focus:outline-none focus:border-[#4A3561]"
                   />
                 </div>
@@ -523,7 +570,7 @@ export const DebtView: React.FC = () => {
                     step="any"
                     placeholder="21.99"
                     value={debtApr}
-                    onChange={e => setDebtApr(e.target.value)}
+                    onChange={(e) => setDebtApr(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-2xl bg-[#FAF9FC] dark:bg-[#162032] border border-[#DDD5E6] dark:border-[#223049] text-xs font-mono text-[#241930] dark:text-slate-100 focus:outline-none focus:border-[#4A3561]"
                   />
                 </div>
@@ -537,7 +584,7 @@ export const DebtView: React.FC = () => {
                     min="1"
                     max="31"
                     value={debtDueDay}
-                    onChange={e => setDebtDueDay(e.target.value)}
+                    onChange={(e) => setDebtDueDay(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-2xl bg-[#FAF9FC] dark:bg-[#162032] border border-[#DDD5E6] dark:border-[#223049] text-xs font-mono text-[#241930] dark:text-slate-100 focus:outline-none focus:border-[#4A3561]"
                   />
                 </div>
@@ -565,4 +612,3 @@ export const DebtView: React.FC = () => {
     </div>
   );
 };
-
